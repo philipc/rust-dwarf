@@ -15,7 +15,7 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-fn read_unsigned<R, T>(r: &mut Read, size: usize, zero: T)
+fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T)
     -> Result<T, Error>
     where
         R: Read,
