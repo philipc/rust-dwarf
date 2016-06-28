@@ -1,6 +1,20 @@
 use constant;
 
 #[derive(Debug)]
+pub enum Endian {
+    Little,
+    Big,
+}
+
+#[derive(Debug)]
+pub struct Sections {
+    pub endian: Endian,
+    pub debug_info: Vec<u8>,
+    pub debug_str: Vec<u8>,
+    pub debug_abbrev: Vec<u8>,
+}
+
+#[derive(Debug)]
 pub struct CompilationUnit<'a> {
     pub die: Vec<Die<'a>>,
 }

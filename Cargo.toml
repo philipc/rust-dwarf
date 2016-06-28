@@ -9,6 +9,4 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 byteorder = "0.5.3"
-
-[dev-dependencies]
 elf = "0.0.9"
