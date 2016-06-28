@@ -35,14 +35,14 @@ impl std::convert::From<leb128::Error> for ParseError {
     }
 }
 
-pub fn parse_sections<'a>(sections: &'a Sections) -> Result<Vec<CompilationUnit<'a>>, ParseError> {
+pub fn parse_sections(sections: &Sections) -> Result<Vec<CompilationUnit>, ParseError> {
     match sections.endian {
         Endian::Little => parse_debug_info::<byteorder::LittleEndian>(sections),
         Endian::Big => parse_debug_info::<byteorder::BigEndian>(sections),
     }
 }
 
-fn parse_debug_info<'a, B: ByteOrder>(sections: &'a Sections) -> Result<Vec<CompilationUnit<'a>>, ParseError> {
+fn parse_debug_info<B: ByteOrder>(sections: &Sections) -> Result<Vec<CompilationUnit>, ParseError> {
     let mut info = &sections.debug_info[..];
     let mut result = Vec::new();
     while info.len() > 0 {
@@ -197,7 +197,7 @@ fn parse_block<'a>(r: &mut &'a[u8], len: usize) -> Result<&'a [u8], ParseError> 
 fn parse_string<'a>(r: &mut &'a[u8]) -> Result<&'a str, ParseError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
-        None => return Err(ParseError::Invalid(format!("unterminated string"))),
+        None => return Err(ParseError::Invalid("unterminated string".to_string())),
     };
     let val = try!(std::str::from_utf8(&r[..len]));
     *r = &r[len+1..];
