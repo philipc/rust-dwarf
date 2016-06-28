@@ -4,7 +4,7 @@ extern crate test;
 extern crate dwarf;
 
 #[bench]
-fn parse(b:&mut test::Bencher) {
+fn parse(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
     b.iter(|| {
@@ -13,7 +13,7 @@ fn parse(b:&mut test::Bencher) {
 }
 
 #[bench]
-fn display(b:&mut test::Bencher) {
+fn display(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
     let units = dwarf::parse_sections(&sections).unwrap();

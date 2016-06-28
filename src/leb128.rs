@@ -16,8 +16,7 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T)
-    -> Result<T, Error>
+fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
     where
         R: Read,
         T: BitOrAssign + Shl<usize, Output=T> + From<u8>
@@ -28,17 +27,16 @@ fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T)
         let byte = try!(r.read_u8());
         result |= T::from(byte & 0x7f) << shift;
         if byte & 0x80 == 0 {
-            return Ok(result)
+            return Ok(result);
         }
         shift += 7;
         if shift >= size {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
     }
 }
 
-fn read_signed<R, T>(r: &mut R, size: usize, zero: T)
-    -> Result<T, Error>
+fn read_signed<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
     where
         R: Read,
         T: Copy + BitOrAssign + Not<Output=T> + Shl<usize, Output=T> + From<u8>
@@ -54,10 +52,10 @@ fn read_signed<R, T>(r: &mut R, size: usize, zero: T)
                 // Sign extend
                 result |= !zero << shift;
             }
-            return Ok(result)
+            return Ok(result);
         }
         if shift >= size {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
     }
 }
@@ -75,29 +73,27 @@ pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
 }
 
 #[allow(dead_code)]
-pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> Result<(), Error>
-{
+pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> Result<(), Error> {
     loop {
         let byte = value as u8 & 0x7f;
         value >>= 7;
         if value == 0 {
             try!(w.write_u8(byte));
-            return Ok(())
+            return Ok(());
         }
         try!(w.write_u8(byte | 0x80));
     }
 }
 
 #[allow(dead_code)]
-pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> Result<(), Error>
-{
+pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> Result<(), Error> {
     loop {
         let byte = value as u8 & 0x7f;
         let sign = (byte & 0x40) != 0;
         value >>= 7;
         if value == 0 && !sign || value == -1 && sign {
             try!(w.write_u8(byte));
-            return Ok(())
+            return Ok(());
         }
         try!(w.write_u8(byte | 0x80));
     }
@@ -217,7 +213,7 @@ mod test {
 
         // Write EOF
         {
-            let mut buf = &mut [0;2][..];
+            let mut buf = &mut [0; 2][..];
             assert!(match write_u64(&mut buf, 0xffff) {
                 Err(Error::Io(_)) => true,
                 _ => false,
@@ -302,7 +298,7 @@ mod test {
 
         // Write EOF
         {
-            let mut buf = &mut [0;2][..];
+            let mut buf = &mut [0; 2][..];
             assert!(match write_i64(&mut buf, 0xffff) {
                 Err(Error::Io(_)) => true,
                 _ => false,

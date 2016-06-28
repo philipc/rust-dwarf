@@ -49,10 +49,10 @@ fn parse_debug_info<B: ByteOrder>(sections: &Sections) -> Result<Vec<Compilation
         let len = try!(info.read_u32::<B>()) as usize;
         // TODO: 64 bit
         if len >= 0xfffffff0 {
-            return Err(ParseError::Unsupported(format!("compilation unit length {}", len)))
+            return Err(ParseError::Unsupported(format!("compilation unit length {}", len)));
         }
         if len > info.len() {
-            return Err(ParseError::Invalid(format!("compilation unit length {}", len)))
+            return Err(ParseError::Invalid(format!("compilation unit length {}", len)));
         }
         result.push(try!(parse_compilation_unit::<B>(sections, &info[..len])));
         info = &info[len..];
@@ -60,12 +60,15 @@ fn parse_debug_info<B: ByteOrder>(sections: &Sections) -> Result<Vec<Compilation
     Ok(result)
 }
 
-fn parse_compilation_unit<'a, B: ByteOrder>(sections: &'a Sections, mut r: &'a [u8]) -> Result<CompilationUnit<'a>, ParseError> {
+fn parse_compilation_unit<'a, B: ByteOrder>(
+    sections: &'a Sections,
+    mut r: &'a [u8]
+) -> Result<CompilationUnit<'a>, ParseError> {
     let r = &mut r;
 
     let version = try!(r.read_u16::<B>());
     if version < 2 || version > 4 { // TODO: is this correct?
-        return Err(ParseError::Unsupported(format!("compilation unit version {}", version)))
+        return Err(ParseError::Unsupported(format!("compilation unit version {}", version)));
     }
 
     let abbrev_offset = try!(parse_offset::<B>(r, sections.debug_abbrev.len()));
@@ -73,10 +76,15 @@ fn parse_compilation_unit<'a, B: ByteOrder>(sections: &'a Sections, mut r: &'a [
 
     let abbrev_hash = try!(parse_abbrev(&sections.debug_abbrev[abbrev_offset..]));
     let die = try!(parse_die_children::<B>(sections, r, &abbrev_hash, address_size));
-    Ok(CompilationUnit {die: die})
+    Ok(CompilationUnit { die: die })
 }
 
-fn parse_die_children<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u8], abbrev_hash: &AbbrevHash, address_size: u8) -> Result<Vec<Die<'a>>, ParseError> {
+fn parse_die_children<'a, B: ByteOrder>(
+    sections: &'a Sections,
+    r: &mut &'a [u8],
+    abbrev_hash: &AbbrevHash,
+    address_size: u8
+) -> Result<Vec<Die<'a>>, ParseError> {
     let mut die = Vec::new();
     while r.len() > 0 {
         let code = try!(leb128::read_u64(r));
@@ -113,19 +121,24 @@ fn parse_die_children<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u8]
     Ok(die)
 }
 
-fn parse_attribute_data<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u8], form: constant::DwForm, address_size: u8) -> Result<AttributeData<'a>, ParseError> {
+fn parse_attribute_data<'a, B: ByteOrder>(
+    sections: &'a Sections,
+    r: &mut &'a [u8],
+    form: constant::DwForm,
+    address_size: u8
+) -> Result<AttributeData<'a>, ParseError> {
     let data = match form {
         constant::DW_FORM_addr => AttributeData::Address(try!(parse_address::<B>(r, address_size))),
         constant::DW_FORM_block2 => {
             let len = try!(r.read_u16::<B>()) as usize;
             let val = try!(parse_block(r, len));
             AttributeData::Block(val)
-        },
+        }
         constant::DW_FORM_block4 => {
             let len = try!(r.read_u32::<B>()) as usize;
             let val = try!(parse_block(r, len));
             AttributeData::Block(val)
-        },
+        }
         constant::DW_FORM_data2 => AttributeData::Data2(try!(r.read_u16::<B>())),
         constant::DW_FORM_data4 => AttributeData::Data4(try!(r.read_u32::<B>())),
         constant::DW_FORM_data8 => AttributeData::Data8(try!(r.read_u64::<B>())),
@@ -134,12 +147,12 @@ fn parse_attribute_data<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u
             let len = try!(leb128::read_u64(r)) as usize;
             let val = try!(parse_block(r, len));
             AttributeData::Block(val)
-        },
+        }
         constant::DW_FORM_block1 => {
             let len = try!(r.read_u8()) as usize;
             let val = try!(parse_block(r, len));
             AttributeData::Block(val)
-        },
+        }
         constant::DW_FORM_data1 => AttributeData::Data1(try!(r.read_u8())),
         constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
         constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
@@ -148,7 +161,7 @@ fn parse_attribute_data<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u
             let mut str_r = &sections.debug_str[offset..];
             let val = try!(parse_string(&mut str_r));
             AttributeData::String(val)
-        },
+        }
         constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
         constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(parse_address::<B>(r, address_size))),
         constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
@@ -159,16 +172,16 @@ fn parse_attribute_data<'a, B: ByteOrder>(sections: &'a Sections, r: &mut &'a [u
         constant::DW_FORM_indirect => {
             let val = try!(leb128::read_u16(r));
             try!(parse_attribute_data::<B>(sections, r, constant::DwForm(val), address_size))
-        },
+        }
         constant::DW_FORM_sec_offset => {
             // TODO: validate based on class
             AttributeData::SecOffset(try!(parse_offset::<B>(r, std::usize::MAX)))
-        },
+        }
         constant::DW_FORM_exprloc => {
             let len = try!(leb128::read_u64(r)) as usize;
             let val = try!(parse_block(r, len));
             AttributeData::ExprLoc(val)
-        },
+        }
         constant::DW_FORM_flag_present => AttributeData::Flag(true),
         constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(r.read_u64::<B>())),
         _ => return Err(ParseError::Unsupported(format!("attribute form {}", form.0))),
@@ -180,27 +193,27 @@ fn parse_offset<B: ByteOrder>(r: &mut &[u8], len: usize) -> Result<usize, ParseE
     // TODO: 64 bit
     let offset = try!(r.read_u32::<B>()) as usize;
     if offset >= len {
-        return Err(ParseError::Invalid(format!("offset {} > {}", offset, len)))
+        return Err(ParseError::Invalid(format!("offset {} > {}", offset, len)));
     }
     Ok(offset)
 }
 
-fn parse_block<'a>(r: &mut &'a[u8], len: usize) -> Result<&'a [u8], ParseError> {
+fn parse_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ParseError> {
     if len > r.len() {
-        return Err(ParseError::Invalid(format!("block length {} > {}", len, r.len())))
+        return Err(ParseError::Invalid(format!("block length {} > {}", len, r.len())));
     }
     let val = &r[..len];
     *r = &r[len..];
     Ok(val)
 }
 
-fn parse_string<'a>(r: &mut &'a[u8]) -> Result<&'a str, ParseError> {
+fn parse_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ParseError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
         None => return Err(ParseError::Invalid("unterminated string".to_string())),
     };
     let val = try!(std::str::from_utf8(&r[..len]));
-    *r = &r[len+1..];
+    *r = &r[len + 1..];
     Ok(val)
 }
 
@@ -248,7 +261,7 @@ fn parse_abbrev(mut abbrev: &[u8]) -> Result<AbbrevHash, ParseError> {
             children: children,
             attribute: attribute
         }).is_some() {
-            return Err(ParseError::Invalid(format!("duplicate abbrev code {}", code)))
+            return Err(ParseError::Invalid(format!("duplicate abbrev code {}", code)));
         }
     }
     Ok(abbrev_hash)
