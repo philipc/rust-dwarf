@@ -26,6 +26,16 @@ pub struct Sections {
 }
 
 #[derive(Debug)]
+pub struct CompilationUnitHeader<'a> {
+    sections: &'a Sections,
+    version: u16,
+    address_size: u8,
+    // TODO: offset_size: u8,
+    abbrev: &'a [u8],
+    data: &'a [u8],
+}
+
+#[derive(Debug)]
 pub struct CompilationUnit<'a> {
     pub die: Vec<Die<'a>>,
 }

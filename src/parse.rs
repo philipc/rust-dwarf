@@ -58,28 +58,32 @@ impl Endian {
 }
 
 impl Sections {
+    pub fn compilation_unit_headers(&self) -> CompilationUnitHeaderIterator {
+        CompilationUnitHeaderIterator::new(self)
+    }
+
     pub fn compilation_units(&self) -> CompilationUnitIterator {
         CompilationUnitIterator::new(self)
     }
 }
 
 #[derive(Debug)]
-pub struct CompilationUnitIterator<'a> {
+pub struct CompilationUnitHeaderIterator<'a> {
     sections: &'a Sections,
     info: &'a [u8],
 }
 
-impl<'a> CompilationUnitIterator<'a> {
+impl<'a> CompilationUnitHeaderIterator<'a> {
     fn new(sections: &'a Sections) -> Self {
-        CompilationUnitIterator {
+        CompilationUnitHeaderIterator {
             sections: sections,
             info: &sections.debug_info[..],
         }
     }
 }
 
-impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
-    type Item = CompilationUnit<'a>;
+impl<'a> FallibleIterator for CompilationUnitHeaderIterator<'a> {
+    type Item = CompilationUnitHeader<'a>;
     type Error = ParseError;
 
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
@@ -95,29 +99,66 @@ impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
         if len > self.info.len() {
             return Err(ParseError::Invalid(format!("compilation unit length {}", len)));
         }
-        let result = try!(parse_compilation_unit(self.sections, &self.info[..len]));
+        let result = try!(CompilationUnitHeader::new(self.sections, &self.info[..len]));
         self.info = &self.info[len..];
         Ok(Some(result))
     }
 }
 
-fn parse_compilation_unit<'a>(
-    sections: &'a Sections,
-    mut r: &'a [u8]
-) -> Result<CompilationUnit<'a>, ParseError> {
-    let r = &mut r;
+impl<'a> CompilationUnitHeader<'a> {
+    pub fn new(
+        sections: &'a Sections,
+        mut r: &'a [u8]
+    ) -> Result<CompilationUnitHeader<'a>, ParseError> {
+        let r = &mut r;
 
-    let version = try!(sections.endian.read_u16(r));
-    if version < 2 || version > 4 { // TODO: is this correct?
-        return Err(ParseError::Unsupported(format!("compilation unit version {}", version)));
+        let version = try!(sections.endian.read_u16(r));
+        if version < 2 || version > 4 { // TODO: is this correct?
+            return Err(ParseError::Unsupported(format!("compilation unit version {}", version)));
+        }
+
+        let abbrev_offset = try!(parse_offset(sections, r, sections.debug_abbrev.len()));
+        let abbrev = &sections.debug_abbrev[abbrev_offset..];
+
+        let address_size = try!(r.read_u8());
+
+        Ok(CompilationUnitHeader {
+            sections: sections,
+            version: version,
+            address_size: address_size,
+            abbrev: abbrev,
+            data: r,
+        })
     }
 
-    let abbrev_offset = try!(parse_offset(sections, r, sections.debug_abbrev.len()));
-    let address_size = try!(r.read_u8());
+    pub fn parse(&self) -> Result<CompilationUnit<'a>, ParseError> {
+        let mut r = self.data;
+        let abbrev = try!(parse_abbrev(self.abbrev));
+        let die = try!(parse_die_children(self.sections, &mut r, &abbrev, self.address_size));
+        Ok(CompilationUnit { die: die })
+    }
+}
 
-    let abbrev_hash = try!(parse_abbrev(&sections.debug_abbrev[abbrev_offset..]));
-    let die = try!(parse_die_children(sections, r, &abbrev_hash, address_size));
-    Ok(CompilationUnit { die: die })
+#[derive(Debug)]
+pub struct CompilationUnitIterator<'a>(CompilationUnitHeaderIterator<'a>);
+
+impl<'a> CompilationUnitIterator<'a> {
+    fn new(sections: &'a Sections) -> Self {
+        CompilationUnitIterator(CompilationUnitHeaderIterator::new(sections))
+    }
+}
+
+impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
+    type Item = CompilationUnit<'a>;
+    type Error = ParseError;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+        match self.0.next() {
+            Ok(Some(header)) => Ok(Some(try!(header.parse()))),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
 }
 
 fn parse_die_children<'a>(
