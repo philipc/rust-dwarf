@@ -57,26 +57,48 @@ impl Endian {
     }
 }
 
-pub fn parse_sections(sections: &Sections) -> Result<Vec<CompilationUnit>, ParseError> {
-    parse_debug_info(sections)
+impl Sections {
+    pub fn compilation_units(&self) -> CompilationUnitIterator {
+        CompilationUnitIterator::new(self)
+    }
 }
 
-fn parse_debug_info(sections: &Sections) -> Result<Vec<CompilationUnit>, ParseError> {
-    let mut info = &sections.debug_info[..];
-    let mut result = Vec::new();
-    while info.len() > 0 {
-        let len = try!(sections.endian.read_u32(&mut info)) as usize;
+#[derive(Debug)]
+pub struct CompilationUnitIterator<'a> {
+    sections: &'a Sections,
+    info: &'a [u8],
+}
+
+impl<'a> CompilationUnitIterator<'a> {
+    fn new(sections: &'a Sections) -> Self {
+        CompilationUnitIterator {
+            sections: sections,
+            info: &sections.debug_info[..],
+        }
+    }
+}
+
+impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
+    type Item = CompilationUnit<'a>;
+    type Error = ParseError;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+        if self.info.len() == 0 {
+            return Ok(None);
+        }
+
+        let len = try!(self.sections.endian.read_u32(&mut self.info)) as usize;
         // TODO: 64 bit
         if len >= 0xfffffff0 {
             return Err(ParseError::Unsupported(format!("compilation unit length {}", len)));
         }
-        if len > info.len() {
+        if len > self.info.len() {
             return Err(ParseError::Invalid(format!("compilation unit length {}", len)));
         }
-        result.push(try!(parse_compilation_unit(sections, &info[..len])));
-        info = &info[len..];
+        let result = try!(parse_compilation_unit(self.sections, &self.info[..len]));
+        self.info = &self.info[len..];
+        Ok(Some(result))
     }
-    Ok(result)
 }
 
 fn parse_compilation_unit<'a>(

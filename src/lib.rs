@@ -1,9 +1,15 @@
 extern crate byteorder;
+extern crate fallible_iterator;
 
-pub use parse::*;
+mod leb128;
+mod display;
+mod parse;
 
 pub mod constant;
 pub mod elf;
+
+pub use fallible_iterator::FallibleIterator;
+pub use parse::ParseError;
 
 #[derive(Debug)]
 pub enum Endian {
@@ -68,7 +74,3 @@ pub struct AbbrevAttribute {
     pub at: constant::DwAt,
     pub form: constant::DwForm,
 }
-
-mod leb128;
-mod display;
-mod parse;
