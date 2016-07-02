@@ -1,8 +1,7 @@
 use std::fmt;
 use std::fmt::Write;
 
-use types::*;
-use constant;
+use super::*;
 
 // Copied from libcore::fmt::builders
 struct PadAdapter<'a, 'b: 'a> {

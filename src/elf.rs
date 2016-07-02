@@ -2,7 +2,7 @@ extern crate elf;
 
 use std;
 
-use types::*;
+use super::{Endian, Sections};
 use parse::ParseError;
 
 impl std::convert::From<elf::ParseError> for ParseError {

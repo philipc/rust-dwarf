@@ -2,8 +2,7 @@ use std;
 use byteorder;
 use byteorder::{ReadBytesExt};
 
-use types::*;
-use constant;
+use super::*;
 use leb128;
 
 #[derive(Debug)]
