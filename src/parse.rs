@@ -132,10 +132,15 @@ impl<'a> CompilationUnitHeader<'a> {
     }
 
     pub fn parse(&self) -> Result<CompilationUnit<'a>, ParseError> {
-        let mut r = self.data;
+        let mut iter = try!(self.entries());
+        let mut entries = Vec::new();
+        try!(iter.next_children(&mut entries));
+        Ok(CompilationUnit { die: entries })
+    }
+
+    pub fn entries(&self) -> Result<DebuggingInformationEntryIterator<'a>, ParseError> {
         let abbrev = try!(parse_abbrev(self.abbrev));
-        let die = try!(parse_die_children(self.sections, &mut r, &abbrev, self.address_size));
-        Ok(CompilationUnit { die: die })
+        Ok(DebuggingInformationEntryIterator::new(self.sections, self.address_size, abbrev, self.data))
     }
 }
 
@@ -161,27 +166,71 @@ impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
     }
 }
 
-fn parse_die_children<'a>(
+#[derive(Debug)]
+pub struct DebuggingInformationEntryIterator<'a> {
     sections: &'a Sections,
-    r: &mut &'a [u8],
-    abbrev_hash: &AbbrevHash,
-    address_size: u8
-) -> Result<Vec<Die<'a>>, ParseError> {
-    let mut die = Vec::new();
-    while r.len() > 0 {
-        let code = try!(leb128::read_u64(r));
-        if code == 0 {
-            break;
+    address_size: u8,
+    abbrev: AbbrevHash,
+    data: &'a [u8],
+}
+
+impl<'a> DebuggingInformationEntryIterator<'a> {
+    fn new(sections: &'a Sections, address_size: u8, abbrev: AbbrevHash, data: &'a [u8]) -> Self {
+        DebuggingInformationEntryIterator {
+            sections: sections,
+            address_size: address_size,
+            abbrev: abbrev,
+            data: data,
+        }
+    }
+
+    fn next_children(&mut self, children: &mut Vec<Die<'a>>) -> Result<(), ParseError> {
+        loop {
+            let mut child = match try!(self.next()) {
+                Some(child) => child,
+                None => break,
+            };
+            if child.tag == constant::DwTag(0) {
+                break;
+            }
+
+            match child.children {
+                Some(ref mut children) => try!(self.next_children(children)),
+                None => {},
+            }
+
+            children.push(child);
+        }
+        Ok(())
+    }
+}
+
+impl<'a> FallibleIterator for DebuggingInformationEntryIterator<'a> {
+    type Item = Die<'a>;
+    type Error = ParseError;
+
+    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+        if self.data.len() == 0 {
+            return Ok(None);
         }
 
-        let abbrev = match abbrev_hash.get(&code) {
+        let code = try!(leb128::read_u64(&mut self.data));
+        if code == 0 {
+            return Ok(Some(Die {
+                tag: constant::DwTag(0),
+                attribute: Vec::new(),
+                children: None,
+            }));
+        }
+
+        let abbrev = match self.abbrev.get(&code) {
             Some(abbrev) => abbrev,
             None => return Err(ParseError::Invalid(format!("missing abbrev {}", code))),
         };
 
         let mut attribute = Vec::new();
         for abbrev_attribute in &abbrev.attribute {
-            let data = try!(parse_attribute_data(sections, r, abbrev_attribute.form, address_size));
+            let data = try!(parse_attribute_data(self.sections, &mut self.data, abbrev_attribute.form, self.address_size));
             attribute.push(Attribute {
                 at: abbrev_attribute.at,
                 data: data,
@@ -189,18 +238,17 @@ fn parse_die_children<'a>(
         }
 
         let children = if abbrev.children {
-            try!(parse_die_children(sections, r, abbrev_hash, address_size))
+            Some(Vec::new())
         } else {
-            Vec::new()
+            None
         };
 
-        die.push(Die {
+        Ok(Some(Die {
             tag: abbrev.tag,
             attribute: attribute,
             children: children,
-        });
+        }))
     }
-    Ok(die)
 }
 
 fn parse_attribute_data<'a>(

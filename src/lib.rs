@@ -44,7 +44,7 @@ pub struct CompilationUnit<'a> {
 pub struct Die<'a> {
     pub tag: constant::DwTag,
     pub attribute: Vec<Attribute<'a>>,
-    pub children: Vec<Die<'a>>,
+    pub children: Option<Vec<Die<'a>>>,
 }
 
 #[derive(Debug)]

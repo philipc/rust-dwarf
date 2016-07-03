@@ -59,9 +59,11 @@ impl<'a> fmt::Display for Die<'a> {
         for attribute in &self.attribute {
             try!(write!(f, "{}\n", attribute));
         }
-        for die in &self.children {
-            let mut writer = PadAdapter::new(f);
-            try!(write!(&mut writer, "\n{}", die));
+        if let Some(ref children) = self.children {
+            for die in children {
+                let mut writer = PadAdapter::new(f);
+                try!(write!(&mut writer, "\n{}", die));
+            }
         }
         Ok(())
     }
