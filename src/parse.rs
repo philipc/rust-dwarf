@@ -218,7 +218,7 @@ impl<'a> FallibleIterator for DebuggingInformationEntryIterator<'a> {
         if code == 0 {
             return Ok(Some(Die {
                 tag: constant::DwTag(0),
-                attribute: Vec::new(),
+                attributes: Vec::new(),
                 children: None,
             }));
         }
@@ -228,10 +228,10 @@ impl<'a> FallibleIterator for DebuggingInformationEntryIterator<'a> {
             None => return Err(ParseError::Invalid(format!("missing abbrev {}", code))),
         };
 
-        let mut attribute = Vec::new();
-        for abbrev_attribute in &abbrev.attribute {
+        let mut attributes = Vec::new();
+        for abbrev_attribute in &abbrev.attributes {
             let data = try!(parse_attribute_data(self.sections, &mut self.data, abbrev_attribute.form, self.address_size));
-            attribute.push(Attribute {
+            attributes.push(Attribute {
                 at: abbrev_attribute.at,
                 data: data,
             });
@@ -245,7 +245,7 @@ impl<'a> FallibleIterator for DebuggingInformationEntryIterator<'a> {
 
         Ok(Some(Die {
             tag: abbrev.tag,
-            attribute: attribute,
+            attributes: attributes,
             children: children,
         }))
     }
@@ -373,14 +373,14 @@ fn parse_abbrev(mut abbrev: &[u8]) -> Result<AbbrevHash, ParseError> {
             val => return Err(ParseError::Invalid(format!("DW_CHILDREN {}", val.0))),
         };
 
-        let mut attribute = Vec::new();
+        let mut attributes = Vec::new();
         loop {
             let at = try!(leb128::read_u16(&mut abbrev));
             let form = try!(leb128::read_u16(&mut abbrev));
             if at == 0 && form == 0 {
                 break;
             }
-            attribute.push(AbbrevAttribute {
+            attributes.push(AbbrevAttribute {
                 at: constant::DwAt(at),
                 form: constant::DwForm(form),
             });
@@ -389,7 +389,7 @@ fn parse_abbrev(mut abbrev: &[u8]) -> Result<AbbrevHash, ParseError> {
         if abbrev_hash.insert(code, Abbrev {
             tag: constant::DwTag(tag),
             children: children,
-            attribute: attribute
+            attributes: attributes,
         }).is_some() {
             return Err(ParseError::Invalid(format!("duplicate abbrev code {}", code)));
         }

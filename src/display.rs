@@ -56,7 +56,7 @@ impl<'a> fmt::Display for CompilationUnit<'a> {
 impl<'a> fmt::Display for Die<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{}\n", self.tag));
-        for attribute in &self.attribute {
+        for attribute in &self.attributes {
             try!(write!(f, "{}\n", attribute));
         }
         if let Some(ref children) = self.children {

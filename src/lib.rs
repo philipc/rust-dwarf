@@ -43,7 +43,7 @@ pub struct CompilationUnit<'a> {
 #[derive(Debug)]
 pub struct Die<'a> {
     pub tag: constant::DwTag,
-    pub attribute: Vec<Attribute<'a>>,
+    pub attributes: Vec<Attribute<'a>>,
     pub children: Option<Vec<Die<'a>>>,
 }
 
@@ -76,7 +76,7 @@ pub enum AttributeData<'a> {
 pub struct Abbrev {
     pub tag: constant::DwTag,
     pub children: bool,
-    pub attribute: Vec<AbbrevAttribute>,
+    pub attributes: Vec<AbbrevAttribute>,
 }
 
 #[derive(Debug)]
