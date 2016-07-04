@@ -18,25 +18,26 @@ fn parse(b: &mut test::Bencher) {
 fn display(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
+    let mut buf = Vec::new();
+    let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     b.iter(|| {
-        let units: Vec<dwarf::CompilationUnit> = sections.compilation_units().collect().unwrap();
-        for unit in &units {
-            format!("{}", unit);
+        let mut units = sections.compilation_units();
+        while let Some(unit) = units.next().unwrap() {
+            unit.display(&mut f).unwrap();
         }
     });
 }
 
 #[bench]
-fn display_flat(b: &mut test::Bencher) {
+fn display_headers(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
+    let mut buf = Vec::new();
+    let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     b.iter(|| {
-        let units: Vec<dwarf::CompilationUnitHeader> = sections.compilation_unit_headers().collect().unwrap();
-        for unit in units {
-            let mut entries = unit.entries().unwrap();
-            while let Some(entry) = entries.next().unwrap() {
-                format!("{}", entry);
-            }
+        let mut units = sections.compilation_unit_headers();
+        while let Some(unit) = units.next().unwrap() {
+            unit.display(&mut f).unwrap();
         }
     });
 }

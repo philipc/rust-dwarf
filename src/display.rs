@@ -1,69 +1,97 @@
+use std;
 use std::fmt;
-use std::fmt::Write;
 
 use super::*;
 
-// Copied from libcore::fmt::builders
-struct PadAdapter<'a, 'b: 'a> {
-    fmt: &'a mut fmt::Formatter<'b>,
-    on_newline: bool,
+pub trait Formatter {
+    fn indent(&mut self);
+    fn unindent(&mut self);
+    fn write_fmt(&mut self, fmt: std::fmt::Arguments) -> Result<(), std::io::Error>;
+    fn write_sep(&mut self) -> Result<(), std::io::Error>;
 }
 
-impl<'a, 'b: 'a> PadAdapter<'a, 'b> {
-    fn new(fmt: &'a mut fmt::Formatter<'b>) -> PadAdapter<'a, 'b> {
-        PadAdapter {
-            fmt: fmt,
-            on_newline: false,
+pub struct DefaultFormatter<'a> {
+    w: &'a mut std::io::Write,
+    indent: usize,
+    current_indent: usize,
+}
+
+impl<'a> DefaultFormatter<'a> {
+    pub fn new(w: &'a mut std::io::Write, indent: usize) -> Self {
+        DefaultFormatter {
+            w: w,
+            indent: indent,
+            current_indent: 0,
         }
     }
 }
 
-impl<'a, 'b: 'a> fmt::Write for PadAdapter<'a, 'b> {
-    fn write_str(&mut self, mut s: &str) -> fmt::Result {
-        while !s.is_empty() {
-            if self.on_newline {
-                try!(self.fmt.write_str("  "));
+impl<'a> Formatter for DefaultFormatter<'a> {
+    fn indent(&mut self) {
+        self.current_indent += self.indent;
+    }
+
+    fn unindent(&mut self) {
+        if self.current_indent >= self.indent {
+            self.current_indent -= self.indent;
+        }
+    }
+
+    fn write_fmt(&mut self, fmt: std::fmt::Arguments) -> Result<(), std::io::Error> {
+        for _ in 0..self.current_indent {
+            try!(write!(self.w, " "));
+        }
+        try!(self.w.write_fmt(fmt));
+        Ok(())
+    }
+
+    fn write_sep(&mut self) -> Result<(), std::io::Error> {
+        try!(write!(self.w, "\n"));
+        Ok(())
+    }
+}
+
+impl<'a> CompilationUnitHeader<'a> {
+    pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), ParseError> {
+        let mut iter = try!(self.entries());
+        while let Some(die) = try!(iter.next()) {
+            if die.tag == constant::DwTag(0) {
+                f.unindent();
+            } else {
+                try!(die.display(f));
+                try!(f.write_sep());
+                if die.has_children() {
+                    f.indent();
+                }
             }
-
-            let split = match s.find('\n') {
-                Some(pos) => {
-                    self.on_newline = true;
-                    pos + 1
-                }
-                None => {
-                    self.on_newline = false;
-                    s.len()
-                }
-            };
-            try!(self.fmt.write_str(&s[..split]));
-            s = &s[split..];
         }
-
         Ok(())
     }
 }
 
-impl<'a> fmt::Display for CompilationUnit<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<'a> CompilationUnit<'a> {
+    pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), std::io::Error> {
         for die in &self.die {
-            let mut writer = PadAdapter::new(f);
-            try!(write!(&mut writer, "\n{}", die));
+            try!(die.display(f));
+            try!(f.write_sep());
         }
         Ok(())
     }
 }
 
-impl<'a> fmt::Display for Die<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl<'a> Die<'a> {
+    pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), std::io::Error> {
         try!(write!(f, "{}\n", self.tag));
         for attribute in &self.attributes {
             try!(write!(f, "{}\n", attribute));
         }
         if let Some(ref children) = self.children {
+            f.indent();
             for die in children {
-                let mut writer = PadAdapter::new(f);
-                try!(write!(&mut writer, "\n{}", die));
+                try!(f.write_sep());
+                try!(die.display(f));
             }
+            f.unindent();
         }
         Ok(())
     }

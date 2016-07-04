@@ -2,10 +2,10 @@ extern crate byteorder;
 extern crate fallible_iterator;
 
 mod leb128;
-mod display;
 mod parse;
 
 pub mod constant;
+pub mod display;
 pub mod elf;
 
 pub use fallible_iterator::FallibleIterator;

@@ -13,8 +13,10 @@ fn main() {
 fn display(path: &Path) -> Result<(), dwarf::ParseError> {
     let sections = try!(dwarf::elf::load(path));
     let mut units = sections.compilation_units();
+    let mut stdout = std::io::stdout();
+    let mut f = dwarf::display::DefaultFormatter::new(&mut stdout, 4);
     while let Some(unit) = try!(units.next()) {
-        println!("{}", unit);
+        try!(unit.display(&mut f));
     }
     Ok(())
 }

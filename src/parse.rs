@@ -199,6 +199,10 @@ impl<'a> FallibleIterator for DieIterator<'a> {
 }
 
 impl<'a> Die<'a> {
+    pub fn has_children(&self) -> bool {
+        self.children.is_some()
+    }
+
     pub fn parse_recursive(r: &mut &'a [u8], sections: &'a Sections, address_size: u8, abbrev: &AbbrevHash) -> Result<Option<Die<'a>>, ParseError> {
         let mut result = try!(Die::parse(r, sections, address_size, abbrev));
         if let Some(ref mut die) = result {
