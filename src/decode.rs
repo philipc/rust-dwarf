@@ -148,9 +148,8 @@ impl<'a> DieCursor<'a> {
         }
 
         let mut r = self.data;
-        let mut die = try!(Die::decode(&mut r, self.unit));
+        let die = try!(Die::decode(&mut r, self.unit, self.offset));
         self.next_child = die.children;
-        die.offset = self.offset;
         self.offset += self.data.len() - r.len();
         self.data = r;
         Ok(Some(die))
@@ -171,9 +170,9 @@ impl<'a> DieCursor<'a> {
 }
 
 impl<'a> Die<'a> {
-    pub fn null() -> Self {
+    pub fn null(offset: usize) -> Self {
         Die {
-            offset: 0,
+            offset: offset,
             tag: constant::DwTag(0),
             children: false,
             attributes: Vec::new(),
@@ -184,10 +183,10 @@ impl<'a> Die<'a> {
         self.tag == constant::DwTag(0)
     }
 
-    pub fn decode(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>) -> Result<Die<'a>, DecodeError> {
+    pub fn decode(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>, offset: usize) -> Result<Die<'a>, DecodeError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
-            return Ok(Die::null());
+            return Ok(Die::null(offset));
         }
 
         let abbrev = match unit.abbrev.get(code) {
@@ -201,7 +200,7 @@ impl<'a> Die<'a> {
         }
 
         Ok(Die {
-            offset: 0,
+            offset: offset,
             tag: abbrev.tag,
             children: abbrev.children,
             attributes: attributes,
