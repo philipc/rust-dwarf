@@ -24,6 +24,12 @@ pub struct Sections {
 }
 
 #[derive(Debug)]
+pub struct CompilationUnitIterator<'a> {
+    sections: &'a Sections,
+    info: &'a [u8],
+}
+
+#[derive(Debug)]
 pub struct CompilationUnit<'a> {
     sections: &'a Sections,
     version: u16,
@@ -31,6 +37,13 @@ pub struct CompilationUnit<'a> {
     // TODO: offset_size: u8,
     abbrev: AbbrevHash,
     data: &'a [u8],
+}
+
+#[derive(Debug)]
+pub struct DieCursor<'a> {
+    unit: &'a CompilationUnit<'a>,
+    data: &'a [u8],
+    next_child: bool,
 }
 
 #[derive(Debug)]

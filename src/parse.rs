@@ -63,12 +63,6 @@ impl Sections {
     }
 }
 
-#[derive(Debug)]
-pub struct CompilationUnitIterator<'a> {
-    sections: &'a Sections,
-    info: &'a [u8],
-}
-
 impl<'a> CompilationUnitIterator<'a> {
     fn new(sections: &'a Sections) -> Self {
         CompilationUnitIterator {
@@ -132,13 +126,6 @@ impl<'a> CompilationUnit<'a> {
         }
         Ok(DieCursor::new(self, &self.data[offset..]))
     }
-}
-
-#[derive(Debug)]
-pub struct DieCursor<'a> {
-    unit: &'a CompilationUnit<'a>,
-    data: &'a [u8],
-    next_child: bool,
 }
 
 impl<'a> DieCursor<'a> {

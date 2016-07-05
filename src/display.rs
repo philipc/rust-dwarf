@@ -53,8 +53,21 @@ impl<'a> Formatter for DefaultFormatter<'a> {
 
 impl<'a> CompilationUnit<'a> {
     pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), ParseError> {
-        let mut iter = try!(self.entries());
-        while let Some(die) = try!(iter.next()) {
+        let mut entries = try!(self.entries());
+        try!(entries.display(f));
+        Ok(())
+    }
+
+    pub fn display_depth<F: Formatter>(&self, f: &mut F, depth: usize) -> Result<(), ParseError> {
+        let mut entries = try!(self.entries());
+        try!(entries.display_depth(f, depth));
+        Ok(())
+    }
+}
+
+impl<'a> DieCursor<'a> {
+    pub fn display<F: Formatter>(&mut self, f: &mut F) -> Result<(), ParseError> {
+        while let Some(die) = try!(self.next()) {
             if die.is_null() {
                 f.unindent();
             } else {
@@ -64,6 +77,40 @@ impl<'a> CompilationUnit<'a> {
                     f.indent();
                 }
             }
+        }
+        Ok(())
+    }
+
+    pub fn display_depth<F: Formatter>(&mut self, f: &mut F, max_depth: usize) -> Result<(), ParseError> {
+        let mut depth = 1;
+        loop {
+            let die = if depth == max_depth {
+                try!(self.next_sibling())
+            } else {
+                try!(self.next())
+            };
+            let die = match die {
+                Some(die) => die,
+                None => break,
+            };
+
+            if die.is_null() {
+                if depth > 1 {
+                    depth -= 1;
+                    f.unindent();
+                }
+            } else {
+                try!(die.display(f));
+                try!(f.write_sep());
+                if depth < max_depth && die.children {
+                    depth += 1;
+                    f.indent();
+                }
+            }
+        }
+        while depth > 1 {
+            depth -= 1;
+            f.unindent();
         }
         Ok(())
     }
