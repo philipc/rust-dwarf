@@ -1,5 +1,4 @@
 extern crate byteorder;
-extern crate fallible_iterator;
 
 mod leb128;
 mod parse;
@@ -8,7 +7,6 @@ pub mod constant;
 pub mod display;
 pub mod elf;
 
-pub use fallible_iterator::FallibleIterator;
 pub use parse::ParseError;
 
 #[derive(Clone, Copy, Debug)]

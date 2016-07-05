@@ -2,7 +2,6 @@ extern crate dwarf;
 
 use std::env;
 use std::path::Path;
-use dwarf::FallibleIterator;
 
 fn main() {
     for file in env::args_os().skip(1) {

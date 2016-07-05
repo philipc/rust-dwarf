@@ -76,13 +76,8 @@ impl<'a> CompilationUnitIterator<'a> {
             info: &sections.debug_info[..],
         }
     }
-}
 
-impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
-    type Item = CompilationUnit<'a>;
-    type Error = ParseError;
-
-    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a>>, ParseError> {
         if self.info.len() == 0 {
             return Ok(None);
         }
@@ -146,13 +141,8 @@ impl<'a> DieIterator<'a> {
             data: &unit.data[offset..],
         }
     }
-}
 
-impl<'a> FallibleIterator for DieIterator<'a> {
-    type Item = Die<'a>;
-    type Error = ParseError;
-
-    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
+    pub fn next(&mut self) -> Result<Option<Die<'a>>, ParseError> {
         Die::parse(&mut self.data, self.unit)
     }
 }

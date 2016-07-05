@@ -1,7 +1,5 @@
 extern crate dwarf;
 
-use dwarf::FallibleIterator;
-
 #[test]
 fn parse_and_display() {
     let path = std::env::args_os().next().unwrap();
