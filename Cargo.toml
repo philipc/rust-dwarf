@@ -1,6 +1,6 @@
 [package]
 name = "dwarf"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Philip Craig <philipjcraig@gmail.com>"]
 description = "Decode DWARF debugging information"
 repository = "https://github.com/philipc/rust-dwarf"
