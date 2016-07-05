@@ -43,6 +43,7 @@ pub struct CompilationUnit<'a> {
 pub struct DieCursor<'a> {
     unit: &'a CompilationUnit<'a>,
     data: &'a [u8],
+    offset: usize,
     next_child: bool,
 }
 
