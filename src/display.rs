@@ -83,8 +83,9 @@ impl<'a> DieCursor<'a> {
 
     pub fn display_depth<F: Formatter>(&mut self, f: &mut F, max_depth: usize) -> Result<(), DecodeError> {
         let mut depth = 1;
+        let mut next_sibling = false;
         loop {
-            let die = if depth == max_depth {
+            let die = if next_sibling {
                 try!(self.next_sibling())
             } else {
                 try!(self.next())
@@ -102,9 +103,12 @@ impl<'a> DieCursor<'a> {
             } else {
                 try!(die.display(f));
                 try!(f.write_sep());
+                next_sibling = false;
                 if depth < max_depth && die.children {
                     depth += 1;
                     f.indent();
+                } else if die.children {
+                    next_sibling = true;
                 }
             }
         }
