@@ -67,64 +67,85 @@ impl<'a> CompilationUnitIterator<'a> {
     fn new(sections: &'a Sections) -> Self {
         CompilationUnitIterator {
             sections: sections,
-            info: &sections.debug_info[..],
+            data: &sections.debug_info[..],
+            offset: 0,
         }
     }
 
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
     pub fn next(&mut self) -> Result<Option<CompilationUnit<'a>>, DecodeError> {
-        if self.info.len() == 0 {
+        if self.data.len() == 0 {
             return Ok(None);
         }
 
-        let len = try!(self.sections.endian.read_u32(&mut self.info)) as usize;
-        // TODO: 64 bit
-        if len >= 0xfffffff0 {
-            return Err(DecodeError::Unsupported(format!("compilation unit length {}", len)));
-        }
-        if len > self.info.len() {
-            return Err(DecodeError::Invalid(format!("compilation unit length {}", len)));
-        }
-        let result = try!(CompilationUnit::new(self.sections, &self.info[..len]));
-        self.info = &self.info[len..];
-        Ok(Some(result))
+        let mut r = self.data;
+        let unit = try!(CompilationUnit::decode(&mut r, self.sections, self.offset));
+        self.offset += self.data.len() - r.len();
+        self.data = r;
+        Ok(Some(unit))
     }
 }
 
 impl<'a> CompilationUnit<'a> {
-    pub fn new(
+    pub fn decode(
+        r: &mut &'a [u8],
         sections: &'a Sections,
-        mut r: &'a [u8]
+        offset: usize,
     ) -> Result<CompilationUnit<'a>, DecodeError> {
-        let r = &mut r;
+        let total_len = r.len();
 
-        let version = try!(sections.endian.read_u16(r));
+        let len = try!(sections.endian.read_u32(r)) as usize;
+        // TODO: 64 bit
+        if len >= 0xfffffff0 {
+            return Err(DecodeError::Unsupported(format!("compilation unit length {}", len)));
+        }
+        if len > r.len() {
+            return Err(DecodeError::Invalid(format!("compilation unit length {}", len)));
+        }
+
+        // Tell the caller we read the entire length, even if we don't read it all now
+        let mut data = &r[..len];
+        *r = &r[len..];
+
+        let version = try!(sections.endian.read_u16(&mut data));
         if version < 2 || version > 4 { // TODO: is this correct?
             return Err(DecodeError::Unsupported(format!("compilation unit version {}", version)));
         }
 
-        let abbrev_offset = try!(decode_offset(r, sections.endian, sections.debug_abbrev.len()));
+        let abbrev_offset = try!(decode_offset(&mut data, sections.endian, sections.debug_abbrev.len()));
         let abbrev = try!(AbbrevHash::decode(&sections.debug_abbrev[abbrev_offset..]));
 
-        let address_size = try!(r.read_u8());
+        let address_size = try!(data.read_u8());
+
+        // Calculate offset of first DIE
+        let offset = offset + (total_len - r.len() - data.len());
 
         Ok(CompilationUnit {
             sections: sections,
+            offset: offset,
             version: version,
             address_size: address_size,
             abbrev: abbrev,
-            data: r,
+            data: data,
         })
     }
 
     pub fn entries(&'a self) -> Result<DieCursor<'a>, DecodeError> {
-        Ok(DieCursor::new(self, &self.data, 0))
+        Ok(DieCursor::new(self, &self.data, self.offset))
     }
 
     pub fn entry(&'a self, offset: usize) -> Result<DieCursor<'a>, DecodeError> {
-        if offset >= self.data.len() {
-            return Err(DecodeError::Invalid(format!("offset {} > {}", offset, self.data.len())));
+        if offset < self.offset {
+            return Err(DecodeError::Invalid(format!("offset {} < {}", offset, self.offset)));
         }
-        Ok(DieCursor::new(self, &self.data[offset..], offset))
+        let relative_offset = offset - self.offset;
+        if relative_offset >= self.data.len() {
+            return Err(DecodeError::Invalid(format!("offset {} >= {}", offset, self.offset + self.data.len())));
+        }
+        Ok(DieCursor::new(self, &self.data[relative_offset..], offset))
     }
 }
 

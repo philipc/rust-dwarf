@@ -26,12 +26,14 @@ pub struct Sections {
 #[derive(Debug)]
 pub struct CompilationUnitIterator<'a> {
     sections: &'a Sections,
-    info: &'a [u8],
+    data: &'a [u8],
+    offset: usize,
 }
 
 #[derive(Debug)]
 pub struct CompilationUnit<'a> {
     sections: &'a Sections,
+    offset: usize,
     version: u16,
     address_size: u8,
     // TODO: offset_size: u8,
