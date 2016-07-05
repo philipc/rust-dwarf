@@ -1,5 +1,5 @@
 # rust-dwarf
-Rust library for parsing DWARF debugging information
+Rust library for decoding DWARF debugging information
 
 ## Example:
 

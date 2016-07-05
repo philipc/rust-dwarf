@@ -6,30 +6,30 @@ use super::*;
 use leb128;
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum DecodeError {
     Io(std::io::Error),
     Utf8(std::str::Utf8Error),
     Invalid(String),
     Unsupported(String),
 }
 
-impl std::convert::From<std::io::Error> for ParseError {
+impl std::convert::From<std::io::Error> for DecodeError {
     fn from(e: std::io::Error) -> Self {
-        ParseError::Io(e)
+        DecodeError::Io(e)
     }
 }
 
-impl std::convert::From<std::str::Utf8Error> for ParseError {
+impl std::convert::From<std::str::Utf8Error> for DecodeError {
     fn from(e: std::str::Utf8Error) -> Self {
-        ParseError::Utf8(e)
+        DecodeError::Utf8(e)
     }
 }
 
-impl std::convert::From<leb128::Error> for ParseError {
+impl std::convert::From<leb128::Error> for DecodeError {
     fn from(e: leb128::Error) -> Self {
         match e {
-            leb128::Error::Io(e) => ParseError::Io(e),
-            leb128::Error::Overflow => ParseError::Invalid("LEB128 overflow".to_string()),
+            leb128::Error::Io(e) => DecodeError::Io(e),
+            leb128::Error::Overflow => DecodeError::Invalid("LEB128 overflow".to_string()),
         }
     }
 }
@@ -71,7 +71,7 @@ impl<'a> CompilationUnitIterator<'a> {
         }
     }
 
-    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a>>, ParseError> {
+    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a>>, DecodeError> {
         if self.info.len() == 0 {
             return Ok(None);
         }
@@ -79,10 +79,10 @@ impl<'a> CompilationUnitIterator<'a> {
         let len = try!(self.sections.endian.read_u32(&mut self.info)) as usize;
         // TODO: 64 bit
         if len >= 0xfffffff0 {
-            return Err(ParseError::Unsupported(format!("compilation unit length {}", len)));
+            return Err(DecodeError::Unsupported(format!("compilation unit length {}", len)));
         }
         if len > self.info.len() {
-            return Err(ParseError::Invalid(format!("compilation unit length {}", len)));
+            return Err(DecodeError::Invalid(format!("compilation unit length {}", len)));
         }
         let result = try!(CompilationUnit::new(self.sections, &self.info[..len]));
         self.info = &self.info[len..];
@@ -94,16 +94,16 @@ impl<'a> CompilationUnit<'a> {
     pub fn new(
         sections: &'a Sections,
         mut r: &'a [u8]
-    ) -> Result<CompilationUnit<'a>, ParseError> {
+    ) -> Result<CompilationUnit<'a>, DecodeError> {
         let r = &mut r;
 
         let version = try!(sections.endian.read_u16(r));
         if version < 2 || version > 4 { // TODO: is this correct?
-            return Err(ParseError::Unsupported(format!("compilation unit version {}", version)));
+            return Err(DecodeError::Unsupported(format!("compilation unit version {}", version)));
         }
 
-        let abbrev_offset = try!(parse_offset(r, sections.endian, sections.debug_abbrev.len()));
-        let abbrev = try!(AbbrevHash::parse(&sections.debug_abbrev[abbrev_offset..]));
+        let abbrev_offset = try!(decode_offset(r, sections.endian, sections.debug_abbrev.len()));
+        let abbrev = try!(AbbrevHash::decode(&sections.debug_abbrev[abbrev_offset..]));
 
         let address_size = try!(r.read_u8());
 
@@ -116,13 +116,13 @@ impl<'a> CompilationUnit<'a> {
         })
     }
 
-    pub fn entries(&'a self) -> Result<DieCursor<'a>, ParseError> {
+    pub fn entries(&'a self) -> Result<DieCursor<'a>, DecodeError> {
         Ok(DieCursor::new(self, &self.data, 0))
     }
 
-    pub fn entry(&'a self, offset: usize) -> Result<DieCursor<'a>, ParseError> {
+    pub fn entry(&'a self, offset: usize) -> Result<DieCursor<'a>, DecodeError> {
         if offset >= self.data.len() {
-            return Err(ParseError::Invalid(format!("offset {} > {}", offset, self.data.len())));
+            return Err(DecodeError::Invalid(format!("offset {} > {}", offset, self.data.len())));
         }
         Ok(DieCursor::new(self, &self.data[offset..], offset))
     }
@@ -142,13 +142,13 @@ impl<'a> DieCursor<'a> {
         self.offset
     }
 
-    pub fn next(&mut self) -> Result<Option<Die<'a>>, ParseError> {
+    pub fn next(&mut self) -> Result<Option<Die<'a>>, DecodeError> {
         if self.data.len() == 0 {
             return Ok(None);
         }
 
         let mut r = self.data;
-        let mut die = try!(Die::parse(&mut r, self.unit));
+        let mut die = try!(Die::decode(&mut r, self.unit));
         self.next_child = die.children;
         die.offset = self.offset;
         self.offset += self.data.len() - r.len();
@@ -156,7 +156,7 @@ impl<'a> DieCursor<'a> {
         Ok(Some(die))
     }
 
-    pub fn next_sibling(&mut self) -> Result<Option<Die<'a>>, ParseError> {
+    pub fn next_sibling(&mut self) -> Result<Option<Die<'a>>, DecodeError> {
         if self.next_child {
             self.next_child = false;
             loop {
@@ -184,7 +184,7 @@ impl<'a> Die<'a> {
         self.tag == constant::DwTag(0)
     }
 
-    pub fn parse(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>) -> Result<Die<'a>, ParseError> {
+    pub fn decode(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>) -> Result<Die<'a>, DecodeError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(Die::null());
@@ -192,12 +192,12 @@ impl<'a> Die<'a> {
 
         let abbrev = match unit.abbrev.get(code) {
             Some(abbrev) => abbrev,
-            None => return Err(ParseError::Invalid(format!("missing abbrev {}", code))),
+            None => return Err(DecodeError::Invalid(format!("missing abbrev {}", code))),
         };
 
         let mut attributes = Vec::new();
         for abbrev_attribute in &abbrev.attributes {
-            attributes.push(try!(Attribute::parse(r, unit, abbrev_attribute)));
+            attributes.push(try!(Attribute::decode(r, unit, abbrev_attribute)));
         }
 
         Ok(Die {
@@ -210,12 +210,12 @@ impl<'a> Die<'a> {
 }
 
 impl<'a> Attribute<'a> {
-    pub fn parse(
+    pub fn decode(
         r: &mut &'a [u8],
         unit: &'a CompilationUnit<'a>,
         abbrev: &AbbrevAttribute,
-    ) -> Result<Attribute<'a>, ParseError> {
-        let data = try!(parse_attribute_data(r, unit, abbrev.form));
+    ) -> Result<Attribute<'a>, DecodeError> {
+        let data = try!(decode_attribute_data(r, unit, abbrev.form));
         Ok(Attribute {
             at: abbrev.at,
             data: data,
@@ -223,49 +223,49 @@ impl<'a> Attribute<'a> {
     }
 }
 
-fn parse_attribute_data<'a>(
+fn decode_attribute_data<'a>(
     r: &mut &'a [u8],
     unit: &'a CompilationUnit<'a>,
     form: constant::DwForm,
-) -> Result<AttributeData<'a>, ParseError> {
+) -> Result<AttributeData<'a>, DecodeError> {
     let endian = unit.sections.endian;
     let data = match form {
-        constant::DW_FORM_addr => AttributeData::Address(try!(parse_address(r, endian, unit.address_size))),
+        constant::DW_FORM_addr => AttributeData::Address(try!(decode_address(r, endian, unit.address_size))),
         constant::DW_FORM_block2 => {
             let len = try!(endian.read_u16(r)) as usize;
-            let val = try!(parse_block(r, len));
+            let val = try!(decode_block(r, len));
             AttributeData::Block(val)
         }
         constant::DW_FORM_block4 => {
             let len = try!(endian.read_u32(r)) as usize;
-            let val = try!(parse_block(r, len));
+            let val = try!(decode_block(r, len));
             AttributeData::Block(val)
         }
         constant::DW_FORM_data2 => AttributeData::Data2(try!(endian.read_u16(r))),
         constant::DW_FORM_data4 => AttributeData::Data4(try!(endian.read_u32(r))),
         constant::DW_FORM_data8 => AttributeData::Data8(try!(endian.read_u64(r))),
-        constant::DW_FORM_string => AttributeData::String(try!(parse_string(r))),
+        constant::DW_FORM_string => AttributeData::String(try!(decode_string(r))),
         constant::DW_FORM_block => {
             let len = try!(leb128::read_u64(r)) as usize;
-            let val = try!(parse_block(r, len));
+            let val = try!(decode_block(r, len));
             AttributeData::Block(val)
         }
         constant::DW_FORM_block1 => {
             let len = try!(r.read_u8()) as usize;
-            let val = try!(parse_block(r, len));
+            let val = try!(decode_block(r, len));
             AttributeData::Block(val)
         }
         constant::DW_FORM_data1 => AttributeData::Data1(try!(r.read_u8())),
         constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
         constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
         constant::DW_FORM_strp => {
-            let offset = try!(parse_offset(r, endian, unit.sections.debug_str.len()));
+            let offset = try!(decode_offset(r, endian, unit.sections.debug_str.len()));
             let mut str_r = &unit.sections.debug_str[offset..];
-            let val = try!(parse_string(&mut str_r));
+            let val = try!(decode_string(&mut str_r));
             AttributeData::String(val)
         }
         constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
-        constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(parse_address(r, endian, unit.address_size))),
+        constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(decode_address(r, endian, unit.address_size))),
         constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
         constant::DW_FORM_ref2 => AttributeData::Ref(try!(endian.read_u16(r)) as usize),
         constant::DW_FORM_ref4 => AttributeData::Ref(try!(endian.read_u32(r)) as usize),
@@ -273,67 +273,67 @@ fn parse_attribute_data<'a>(
         constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r)) as usize),
         constant::DW_FORM_indirect => {
             let val = try!(leb128::read_u16(r));
-            try!(parse_attribute_data(r, unit, constant::DwForm(val)))
+            try!(decode_attribute_data(r, unit, constant::DwForm(val)))
         }
         constant::DW_FORM_sec_offset => {
             // TODO: validate based on class
-            AttributeData::SecOffset(try!(parse_offset(r, endian, std::usize::MAX)))
+            AttributeData::SecOffset(try!(decode_offset(r, endian, std::usize::MAX)))
         }
         constant::DW_FORM_exprloc => {
             let len = try!(leb128::read_u64(r)) as usize;
-            let val = try!(parse_block(r, len));
+            let val = try!(decode_block(r, len));
             AttributeData::ExprLoc(val)
         }
         constant::DW_FORM_flag_present => AttributeData::Flag(true),
         constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(endian.read_u64(r))),
-        _ => return Err(ParseError::Unsupported(format!("attribute form {}", form.0))),
+        _ => return Err(DecodeError::Unsupported(format!("attribute form {}", form.0))),
     };
     Ok(data)
 }
 
-fn parse_offset(r: &mut &[u8], endian: Endian, len: usize) -> Result<usize, ParseError> {
+fn decode_offset(r: &mut &[u8], endian: Endian, len: usize) -> Result<usize, DecodeError> {
     // TODO: 64 bit
     let offset = try!(endian.read_u32(r)) as usize;
     if offset >= len {
-        return Err(ParseError::Invalid(format!("offset {} > {}", offset, len)));
+        return Err(DecodeError::Invalid(format!("offset {} > {}", offset, len)));
     }
     Ok(offset)
 }
 
-fn parse_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ParseError> {
+fn decode_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], DecodeError> {
     if len > r.len() {
-        return Err(ParseError::Invalid(format!("block length {} > {}", len, r.len())));
+        return Err(DecodeError::Invalid(format!("block length {} > {}", len, r.len())));
     }
     let val = &r[..len];
     *r = &r[len..];
     Ok(val)
 }
 
-fn parse_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ParseError> {
+fn decode_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, DecodeError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
-        None => return Err(ParseError::Invalid("unterminated string".to_string())),
+        None => return Err(DecodeError::Invalid("unterminated string".to_string())),
     };
     let val = try!(std::str::from_utf8(&r[..len]));
     *r = &r[len + 1..];
     Ok(val)
 }
 
-fn parse_address(r: &mut &[u8], endian: Endian, address_size: u8) -> Result<usize, ParseError> {
+fn decode_address(r: &mut &[u8], endian: Endian, address_size: u8) -> Result<usize, DecodeError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as usize,
         8 => try!(endian.read_u64(r)) as usize,
-        _ => return Err(ParseError::Unsupported(format!("address size {}", address_size))),
+        _ => return Err(DecodeError::Unsupported(format!("address size {}", address_size))),
     };
     Ok(val)
 }
 
 impl AbbrevHash {
-    pub fn parse(mut r: &[u8]) -> Result<AbbrevHash, ParseError> {
+    pub fn decode(mut r: &[u8]) -> Result<AbbrevHash, DecodeError> {
         let mut abbrev_hash = std::collections::HashMap::new();
-        while let Some((code, abbrev)) = try!(Abbrev::parse(&mut r)) {
+        while let Some((code, abbrev)) = try!(Abbrev::decode(&mut r)) {
             if abbrev_hash.insert(code, abbrev).is_some() {
-                return Err(ParseError::Invalid(format!("duplicate abbrev code {}", code)));
+                return Err(DecodeError::Invalid(format!("duplicate abbrev code {}", code)));
             }
         }
         Ok(AbbrevHash(abbrev_hash))
@@ -345,7 +345,7 @@ impl AbbrevHash {
 }
 
 impl Abbrev {
-    pub fn parse(r: &mut &[u8]) -> Result<Option<(u64, Abbrev)>, ParseError> {
+    pub fn decode(r: &mut &[u8]) -> Result<Option<(u64, Abbrev)>, DecodeError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(None);
@@ -356,11 +356,11 @@ impl Abbrev {
         let children = match constant::DwChildren(try!(r.read_u8())) {
             constant::DW_CHILDREN_no => false,
             constant::DW_CHILDREN_yes => true,
-            val => return Err(ParseError::Invalid(format!("DW_CHILDREN {}", val.0))),
+            val => return Err(DecodeError::Invalid(format!("DW_CHILDREN {}", val.0))),
         };
 
         let mut attributes = Vec::new();
-        while let Some(attribute) = try!(AbbrevAttribute::parse(r)) {
+        while let Some(attribute) = try!(AbbrevAttribute::decode(r)) {
             attributes.push(attribute);
         }
 
@@ -373,7 +373,7 @@ impl Abbrev {
 }
 
 impl AbbrevAttribute {
-    pub fn parse(r: &mut &[u8]) -> Result<Option<AbbrevAttribute>, ParseError> {
+    pub fn decode(r: &mut &[u8]) -> Result<Option<AbbrevAttribute>, DecodeError> {
         let at = try!(leb128::read_u16(r));
         let form = try!(leb128::read_u16(r));
         if at == 0 && form == 0 {

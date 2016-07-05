@@ -1,13 +1,13 @@
 extern crate byteorder;
 
 mod leb128;
-mod parse;
+mod decode;
 
 pub mod constant;
 pub mod display;
 pub mod elf;
 
-pub use parse::ParseError;
+pub use decode::DecodeError;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Endian {

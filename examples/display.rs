@@ -9,7 +9,7 @@ fn main() {
     }
 }
 
-fn display(path: &Path) -> Result<(), dwarf::ParseError> {
+fn display(path: &Path) -> Result<(), dwarf::DecodeError> {
     let sections = try!(dwarf::elf::load(path));
     let mut units = sections.compilation_units();
     let mut stdout = std::io::stdout();

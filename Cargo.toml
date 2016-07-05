@@ -2,9 +2,9 @@
 name = "dwarf"
 version = "0.0.1"
 authors = ["Philip Craig <philipjcraig@gmail.com>"]
-description = "Parse DWARF debugging information"
+description = "Decode DWARF debugging information"
 repository = "https://github.com/philipc/rust-dwarf"
-keywords = ["DWARF", "elf"]
+keywords = ["DWARF", "ELF"]
 license = "MIT/Apache-2.0"
 
 [dependencies]
