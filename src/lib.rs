@@ -11,7 +11,7 @@ pub mod elf;
 pub use fallible_iterator::FallibleIterator;
 pub use parse::ParseError;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Endian {
     Little,
     Big,
