@@ -119,6 +119,7 @@ impl<'a> DieCursor<'a> {
 impl<'a> Die<'a> {
     pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), std::io::Error> {
         try!(write!(f, "{}\n", self.tag));
+        try!(write!(f, "offset: {:x}\n", self.offset));
         for attribute in &self.attributes {
             try!(write!(f, "{}\n", attribute));
         }

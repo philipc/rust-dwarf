@@ -143,15 +143,17 @@ impl<'a> DieCursor<'a> {
     }
 
     pub fn next(&mut self) -> Result<Option<Die<'a>>, ParseError> {
+        if self.data.len() == 0 {
+            return Ok(None);
+        }
+
         let mut r = self.data;
-        let die = try!(Die::parse(&mut r, self.unit));
-        self.next_child = match die {
-            Some(ref die) => die.children,
-            None => false,
-        };
+        let mut die = try!(Die::parse(&mut r, self.unit));
+        self.next_child = die.children;
+        die.offset = self.offset;
         self.offset += self.data.len() - r.len();
         self.data = r;
-        Ok(die)
+        Ok(Some(die))
     }
 
     pub fn next_sibling(&mut self) -> Result<Option<Die<'a>>, ParseError> {
@@ -171,6 +173,7 @@ impl<'a> DieCursor<'a> {
 impl<'a> Die<'a> {
     pub fn null() -> Self {
         Die {
+            offset: 0,
             tag: constant::DwTag(0),
             children: false,
             attributes: Vec::new(),
@@ -181,14 +184,10 @@ impl<'a> Die<'a> {
         self.tag == constant::DwTag(0)
     }
 
-    pub fn parse(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>) -> Result<Option<Die<'a>>, ParseError> {
-        if r.len() == 0 {
-            return Ok(None);
-        }
-
+    pub fn parse(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>) -> Result<Die<'a>, ParseError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
-            return Ok(Some(Die::null()));
+            return Ok(Die::null());
         }
 
         let abbrev = match unit.abbrev.get(code) {
@@ -201,11 +200,12 @@ impl<'a> Die<'a> {
             attributes.push(try!(Attribute::parse(r, unit, abbrev_attribute)));
         }
 
-        Ok(Some(Die {
+        Ok(Die {
+            offset: 0,
             tag: abbrev.tag,
             children: abbrev.children,
             attributes: attributes,
-        }))
+        })
     }
 }
 

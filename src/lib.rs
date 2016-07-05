@@ -49,6 +49,7 @@ pub struct DieCursor<'a> {
 
 #[derive(Debug)]
 pub struct Die<'a> {
+    pub offset: usize,
     pub tag: constant::DwTag,
     pub children: bool,
     pub attributes: Vec<Attribute<'a>>,
@@ -72,7 +73,7 @@ pub enum AttributeData<'a> {
     SData(i64),
     Flag(bool),
     String(&'a str),
-    Ref(usize), // TODO: convert to DIE index
+    Ref(usize),
     RefAddress(usize),
     RefSig(u64),
     SecOffset(usize),
