@@ -203,12 +203,24 @@ impl<'a> Die<'a> {
         self.children.is_some()
     }
 
+    pub fn null() -> Self {
+        Die {
+            tag: constant::DwTag(0),
+            attributes: Vec::new(),
+            children: None,
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.tag == constant::DwTag(0)
+    }
+
     pub fn parse_recursive(r: &mut &'a [u8], sections: &'a Sections, address_size: u8, abbrev: &AbbrevHash) -> Result<Option<Die<'a>>, ParseError> {
         let mut result = try!(Die::parse(r, sections, address_size, abbrev));
         if let Some(ref mut die) = result {
             if let Some(ref mut children) = die.children {
                 while let Some(child) = try!(Die::parse_recursive(r, sections, address_size, abbrev)) {
-                    if child.tag == constant::DwTag(0) {
+                    if child.is_null() {
                         break;
                     }
                     children.push(child);
@@ -225,11 +237,7 @@ impl<'a> Die<'a> {
 
         let code = try!(leb128::read_u64(r));
         if code == 0 {
-            return Ok(Some(Die {
-                tag: constant::DwTag(0),
-                attributes: Vec::new(),
-                children: None,
-            }));
+            return Ok(Some(Die::null()));
         }
 
         let abbrev = match abbrev.get(code) {

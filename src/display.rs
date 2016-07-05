@@ -55,7 +55,7 @@ impl<'a> CompilationUnitHeader<'a> {
     pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), ParseError> {
         let mut iter = try!(self.entries());
         while let Some(die) = try!(iter.next()) {
-            if die.tag == constant::DwTag(0) {
+            if die.is_null() {
                 f.unindent();
             } else {
                 try!(die.display(f));
