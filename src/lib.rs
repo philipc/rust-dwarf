@@ -31,7 +31,7 @@ pub struct CompilationUnit<'a> {
     version: u16,
     address_size: u8,
     // TODO: offset_size: u8,
-    abbrev: &'a [u8],
+    abbrev: AbbrevHash,
     data: &'a [u8],
 }
 

@@ -114,7 +114,7 @@ impl<'a> CompilationUnit<'a> {
         }
 
         let abbrev_offset = try!(parse_offset(sections, r, sections.debug_abbrev.len()));
-        let abbrev = &sections.debug_abbrev[abbrev_offset..];
+        let abbrev = try!(AbbrevHash::parse(&sections.debug_abbrev[abbrev_offset..]));
 
         let address_size = try!(r.read_u8());
 
@@ -127,9 +127,8 @@ impl<'a> CompilationUnit<'a> {
         })
     }
 
-    pub fn entries(&self) -> Result<DieIterator<'a>, ParseError> {
-        let abbrev = try!(AbbrevHash::parse(self.abbrev));
-        Ok(DieIterator::new(self.data, self.sections, self.address_size, abbrev))
+    pub fn entries(&'a self) -> Result<DieIterator<'a>, ParseError> {
+        Ok(DieIterator::new(self.data, self.sections, self.address_size, &self.abbrev))
     }
 
 }
@@ -139,11 +138,11 @@ pub struct DieIterator<'a> {
     data: &'a [u8],
     sections: &'a Sections,
     address_size: u8,
-    abbrev: AbbrevHash,
+    abbrev: &'a AbbrevHash,
 }
 
 impl<'a> DieIterator<'a> {
-    fn new(data: &'a [u8], sections: &'a Sections, address_size: u8, abbrev: AbbrevHash) -> Self {
+    fn new(data: &'a [u8], sections: &'a Sections, address_size: u8, abbrev: &'a AbbrevHash) -> Self {
         DieIterator {
             data: data,
             sections: sections,
