@@ -122,28 +122,55 @@ impl<'a> CompilationUnit<'a> {
         })
     }
 
-    pub fn entries(&'a self) -> Result<DieIterator<'a>, ParseError> {
-        Ok(DieIterator::new(self, 0))
+    pub fn entries(&'a self) -> Result<DieCursor<'a>, ParseError> {
+        Ok(DieCursor::new(self, self.data))
     }
 
+    pub fn entry(&'a self, offset: usize) -> Result<DieCursor<'a>, ParseError> {
+        if offset >= self.data.len() {
+            return Err(ParseError::Invalid(format!("offset {} > {}", offset, self.data.len())));
+        }
+        Ok(DieCursor::new(self, &self.data[offset..]))
+    }
 }
 
 #[derive(Debug)]
-pub struct DieIterator<'a> {
+pub struct DieCursor<'a> {
     unit: &'a CompilationUnit<'a>,
     data: &'a [u8],
+    next_child: bool,
 }
 
-impl<'a> DieIterator<'a> {
-    fn new(unit: &'a CompilationUnit<'a>, offset: usize) -> Self {
-        DieIterator {
+impl<'a> DieCursor<'a> {
+    fn new(unit: &'a CompilationUnit<'a>, data: &'a [u8]) -> Self {
+        DieCursor {
             unit: unit,
-            data: &unit.data[offset..],
+            data: data,
+            next_child: false,
         }
     }
 
     pub fn next(&mut self) -> Result<Option<Die<'a>>, ParseError> {
-        Die::parse(&mut self.data, self.unit)
+        let die = try!(Die::parse(&mut self.data, self.unit));
+        self.next_child = match die {
+            Some(ref die) => die.children,
+            None => false,
+        };
+        Ok(die)
+
+    }
+
+    pub fn next_sibling(&mut self) -> Result<Option<Die<'a>>, ParseError> {
+        if self.next_child {
+            self.next_child = false;
+            loop {
+                match try!(self.next_sibling()) {
+                    Some(die) => if die.is_null() { break; },
+                    None => return Ok(None),
+                }
+            }
+        }
+        self.next()
     }
 }
 
