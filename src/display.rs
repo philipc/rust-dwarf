@@ -51,7 +51,7 @@ impl<'a> Formatter for DefaultFormatter<'a> {
     }
 }
 
-impl<'a> CompilationUnitHeader<'a> {
+impl<'a> CompilationUnit<'a> {
     pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), ParseError> {
         let mut iter = try!(self.entries());
         while let Some(die) = try!(iter.next()) {
@@ -60,20 +60,10 @@ impl<'a> CompilationUnitHeader<'a> {
             } else {
                 try!(die.display(f));
                 try!(f.write_sep());
-                if die.has_children() {
+                if die.children {
                     f.indent();
                 }
             }
-        }
-        Ok(())
-    }
-}
-
-impl<'a> CompilationUnit<'a> {
-    pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), std::io::Error> {
-        for die in &self.die {
-            try!(die.display(f));
-            try!(f.write_sep());
         }
         Ok(())
     }
@@ -84,14 +74,6 @@ impl<'a> Die<'a> {
         try!(write!(f, "{}\n", self.tag));
         for attribute in &self.attributes {
             try!(write!(f, "{}\n", attribute));
-        }
-        if let Some(ref children) = self.children {
-            f.indent();
-            for die in children {
-                try!(f.write_sep());
-                try!(die.display(f));
-            }
-            f.unindent();
         }
         Ok(())
     }

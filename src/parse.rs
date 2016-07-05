@@ -58,32 +58,28 @@ impl Endian {
 }
 
 impl Sections {
-    pub fn compilation_unit_headers(&self) -> CompilationUnitHeaderIterator {
-        CompilationUnitHeaderIterator::new(self)
-    }
-
     pub fn compilation_units(&self) -> CompilationUnitIterator {
         CompilationUnitIterator::new(self)
     }
 }
 
 #[derive(Debug)]
-pub struct CompilationUnitHeaderIterator<'a> {
+pub struct CompilationUnitIterator<'a> {
     sections: &'a Sections,
     info: &'a [u8],
 }
 
-impl<'a> CompilationUnitHeaderIterator<'a> {
+impl<'a> CompilationUnitIterator<'a> {
     fn new(sections: &'a Sections) -> Self {
-        CompilationUnitHeaderIterator {
+        CompilationUnitIterator {
             sections: sections,
             info: &sections.debug_info[..],
         }
     }
 }
 
-impl<'a> FallibleIterator for CompilationUnitHeaderIterator<'a> {
-    type Item = CompilationUnitHeader<'a>;
+impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
+    type Item = CompilationUnit<'a>;
     type Error = ParseError;
 
     fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
@@ -99,17 +95,17 @@ impl<'a> FallibleIterator for CompilationUnitHeaderIterator<'a> {
         if len > self.info.len() {
             return Err(ParseError::Invalid(format!("compilation unit length {}", len)));
         }
-        let result = try!(CompilationUnitHeader::new(self.sections, &self.info[..len]));
+        let result = try!(CompilationUnit::new(self.sections, &self.info[..len]));
         self.info = &self.info[len..];
         Ok(Some(result))
     }
 }
 
-impl<'a> CompilationUnitHeader<'a> {
+impl<'a> CompilationUnit<'a> {
     pub fn new(
         sections: &'a Sections,
         mut r: &'a [u8]
-    ) -> Result<CompilationUnitHeader<'a>, ParseError> {
+    ) -> Result<CompilationUnit<'a>, ParseError> {
         let r = &mut r;
 
         let version = try!(sections.endian.read_u16(r));
@@ -122,7 +118,7 @@ impl<'a> CompilationUnitHeader<'a> {
 
         let address_size = try!(r.read_u8());
 
-        Ok(CompilationUnitHeader {
+        Ok(CompilationUnit {
             sections: sections,
             version: version,
             address_size: address_size,
@@ -131,43 +127,11 @@ impl<'a> CompilationUnitHeader<'a> {
         })
     }
 
-    pub fn parse(&self) -> Result<CompilationUnit<'a>, ParseError> {
-        let abbrev = try!(AbbrevHash::parse(self.abbrev));
-        let mut entries = Vec::new();
-        let mut r = self.data;
-        while let Some(entry) = try!(Die::parse_recursive(&mut r, self.sections, self.address_size, &abbrev)) {
-            entries.push(entry);
-        }
-        Ok(CompilationUnit { die: entries })
-    }
-
     pub fn entries(&self) -> Result<DieIterator<'a>, ParseError> {
         let abbrev = try!(AbbrevHash::parse(self.abbrev));
         Ok(DieIterator::new(self.data, self.sections, self.address_size, abbrev))
     }
 
-}
-
-#[derive(Debug)]
-pub struct CompilationUnitIterator<'a>(CompilationUnitHeaderIterator<'a>);
-
-impl<'a> CompilationUnitIterator<'a> {
-    fn new(sections: &'a Sections) -> Self {
-        CompilationUnitIterator(CompilationUnitHeaderIterator::new(sections))
-    }
-}
-
-impl<'a> FallibleIterator for CompilationUnitIterator<'a> {
-    type Item = CompilationUnit<'a>;
-    type Error = ParseError;
-
-    fn next(&mut self) -> Result<Option<Self::Item>, Self::Error> {
-        match self.0.next() {
-            Ok(Some(header)) => Ok(Some(try!(header.parse()))),
-            Ok(None) => Ok(None),
-            Err(e) => Err(e),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -199,35 +163,16 @@ impl<'a> FallibleIterator for DieIterator<'a> {
 }
 
 impl<'a> Die<'a> {
-    pub fn has_children(&self) -> bool {
-        self.children.is_some()
-    }
-
     pub fn null() -> Self {
         Die {
             tag: constant::DwTag(0),
+            children: false,
             attributes: Vec::new(),
-            children: None,
         }
     }
 
     pub fn is_null(&self) -> bool {
         self.tag == constant::DwTag(0)
-    }
-
-    pub fn parse_recursive(r: &mut &'a [u8], sections: &'a Sections, address_size: u8, abbrev: &AbbrevHash) -> Result<Option<Die<'a>>, ParseError> {
-        let mut result = try!(Die::parse(r, sections, address_size, abbrev));
-        if let Some(ref mut die) = result {
-            if let Some(ref mut children) = die.children {
-                while let Some(child) = try!(Die::parse_recursive(r, sections, address_size, abbrev)) {
-                    if child.is_null() {
-                        break;
-                    }
-                    children.push(child);
-                }
-            }
-        }
-        Ok(result)
     }
 
     pub fn parse(r: &mut &'a [u8], sections: &'a Sections, address_size: u8, abbrev: &AbbrevHash) -> Result<Option<Die<'a>>, ParseError> {
@@ -250,16 +195,10 @@ impl<'a> Die<'a> {
             attributes.push(try!(Attribute::parse(r, sections, address_size, abbrev_attribute)));
         }
 
-        let children = if abbrev.children {
-            Some(Vec::new())
-        } else {
-            None
-        };
-
         Ok(Some(Die {
             tag: abbrev.tag,
+            children: abbrev.children,
             attributes: attributes,
-            children: children,
         }))
     }
 }

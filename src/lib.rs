@@ -26,7 +26,7 @@ pub struct Sections {
 }
 
 #[derive(Debug)]
-pub struct CompilationUnitHeader<'a> {
+pub struct CompilationUnit<'a> {
     sections: &'a Sections,
     version: u16,
     address_size: u8,
@@ -36,15 +36,10 @@ pub struct CompilationUnitHeader<'a> {
 }
 
 #[derive(Debug)]
-pub struct CompilationUnit<'a> {
-    pub die: Vec<Die<'a>>,
-}
-
-#[derive(Debug)]
 pub struct Die<'a> {
     pub tag: constant::DwTag,
+    pub children: bool,
     pub attributes: Vec<Attribute<'a>>,
-    pub children: Option<Vec<Die<'a>>>,
 }
 
 #[derive(Debug)]
