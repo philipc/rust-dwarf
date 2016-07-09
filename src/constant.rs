@@ -20,6 +20,8 @@ dw!(DwChildren(u8) {
 });
 
 dw!(DwTag(u16) {
+    DW_TAG_null = 0x00,
+
     DW_TAG_array_type = 0x01,
     DW_TAG_class_type = 0x02,
     DW_TAG_entry_point = 0x03,
@@ -86,6 +88,8 @@ dw!(DwTag(u16) {
 });
 
 dw!(DwAt(u16) {
+    DW_AT_null = 0x00,
+
     DW_AT_sibling = 0x01,
     DW_AT_location = 0x02,
     DW_AT_name = 0x03,
@@ -184,6 +188,8 @@ dw!(DwAt(u16) {
 });
 
 dw!(DwForm(u16) {
+    DW_FORM_null = 0x00,
+
     DW_FORM_addr = 0x01,
     DW_FORM_block2 = 0x03,
     DW_FORM_block4 = 0x04,

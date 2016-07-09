@@ -168,19 +168,6 @@ impl<'a> DieCursor<'a> {
 }
 
 impl<'a> Die<'a> {
-    pub fn null(offset: usize) -> Self {
-        Die {
-            offset: offset,
-            tag: constant::DwTag(0),
-            children: false,
-            attributes: Vec::new(),
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.tag == constant::DwTag(0)
-    }
-
     pub fn read(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>, offset: usize) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
@@ -373,13 +360,14 @@ impl AbbrevAttribute {
     pub fn read<R: Read>(r: &mut R) -> Result<Option<AbbrevAttribute>, ReadError> {
         let at = try!(leb128::read_u16(r));
         let form = try!(leb128::read_u16(r));
-        if at == 0 && form == 0 {
+        let attribute = AbbrevAttribute {
+            at: constant::DwAt(at),
+            form: constant::DwForm(form),
+        };
+        if attribute.is_null() {
             Ok(None)
         } else {
-            Ok(Some(AbbrevAttribute {
-                at: constant::DwAt(at),
-                form: constant::DwForm(form),
-            }))
+            Ok(Some(attribute))
         }
     }
 }

@@ -93,3 +93,31 @@ pub struct AbbrevAttribute {
     pub at: constant::DwAt,
     pub form: constant::DwForm,
 }
+
+impl<'a> Die<'a> {
+    pub fn null(offset: usize) -> Self {
+        Die {
+            offset: offset,
+            tag: constant::DW_TAG_null,
+            children: false,
+            attributes: Vec::new(),
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.tag == constant::DW_TAG_null
+    }
+}
+
+impl AbbrevAttribute {
+    pub fn null() -> Self {
+        AbbrevAttribute {
+            at: constant::DW_AT_null,
+            form: constant::DW_FORM_null,
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.at == constant::DW_AT_null && self.form == constant::DW_FORM_null
+    }
+}
