@@ -16,6 +16,27 @@ fn read_and_display() {
 }
 
 #[test]
+fn abbrev() {
+    let mut buf = Vec::new();
+    let write_code = 1;
+    let write_val = Abbrev {
+        tag: DW_TAG_namespace,
+        children: true,
+        attributes: vec![
+            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_strp },
+        ],
+    };
+    write_val.write(&mut buf, write_code).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = Abbrev::read(&mut r).unwrap();
+
+    assert_eq!(&buf[..], [1, 57, 1, 3, 14, 0, 0]);
+    assert_eq!(read_val, Some((write_code, write_val)));
+    assert_eq!(r.len(), 0);
+}
+
+#[test]
 fn abbrev_attribute() {
     let mut buf = Vec::new();
     let write_val = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };

@@ -82,7 +82,7 @@ pub enum AttributeData<'a> {
 #[derive(Debug)]
 pub struct AbbrevHash(std::collections::HashMap<u64, Abbrev>);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Abbrev {
     pub tag: constant::DwTag,
     pub children: bool,
