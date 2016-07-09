@@ -64,7 +64,7 @@ pub struct Attribute<'a> {
 
 #[derive(Debug)]
 pub enum AttributeData<'a> {
-    Address(usize),
+    Address(u64),
     Block(&'a [u8]),
     Data1(u8),
     Data2(u16),
@@ -75,7 +75,7 @@ pub enum AttributeData<'a> {
     Flag(bool),
     String(&'a str),
     Ref(usize),
-    RefAddress(usize),
+    RefAddress(u64),
     RefSig(u64),
     SecOffset(usize),
     ExprLoc(&'a [u8]),

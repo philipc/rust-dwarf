@@ -305,10 +305,10 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
     Ok(val)
 }
 
-fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<usize, ReadError> {
+fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<u64, ReadError> {
     let val = match address_size {
-        4 => try!(endian.read_u32(r)) as usize,
-        8 => try!(endian.read_u64(r)) as usize,
+        4 => try!(endian.read_u32(r)) as u64,
+        8 => try!(endian.read_u64(r)),
         _ => return Err(ReadError::Unsupported(format!("address size {}", address_size))),
     };
     Ok(val)
