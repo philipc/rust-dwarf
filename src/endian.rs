@@ -1,7 +1,7 @@
 use std;
-use std::io::Read;
+use std::io::{Read, Write};
 use byteorder;
-use byteorder::{ReadBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Endian {
@@ -30,5 +30,25 @@ impl Endian {
             Endian::Big => r.read_u64::<byteorder::BigEndian>(),
         }
     }
-}
 
+    pub fn write_u16<W: Write>(&self, w: &mut W, val: u16) -> Result<(), std::io::Error> {
+        match *self {
+            Endian::Little => w.write_u16::<byteorder::LittleEndian>(val),
+            Endian::Big => w.write_u16::<byteorder::BigEndian>(val),
+        }
+    }
+
+    pub fn write_u32<W: Write>(&self, w: &mut W, val: u32) -> Result<(), std::io::Error> {
+        match *self {
+            Endian::Little => w.write_u32::<byteorder::LittleEndian>(val),
+            Endian::Big => w.write_u32::<byteorder::BigEndian>(val),
+        }
+    }
+
+    pub fn write_u64<W: Write>(&self, w: &mut W, val: u64) -> Result<(), std::io::Error> {
+        match *self {
+            Endian::Little => w.write_u64::<byteorder::LittleEndian>(val),
+            Endian::Big => w.write_u64::<byteorder::BigEndian>(val),
+        }
+    }
+}
