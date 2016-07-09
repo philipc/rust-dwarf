@@ -199,7 +199,7 @@ impl<'a> Attribute<'a> {
         unit: &'a CompilationUnit<'a>,
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
-        let data = try!(read_attribute_data(r, unit, abbrev.form));
+        let data = try!(AttributeData::read(r, unit, abbrev.form));
         Ok(Attribute {
             at: abbrev.at,
             data: data,
@@ -207,72 +207,74 @@ impl<'a> Attribute<'a> {
     }
 }
 
-fn read_attribute_data<'a>(
-    r: &mut &'a [u8],
-    unit: &'a CompilationUnit<'a>,
-    form: constant::DwForm,
-) -> Result<AttributeData<'a>, ReadError> {
-    let endian = unit.sections.endian;
-    let data = match form {
-        constant::DW_FORM_addr => AttributeData::Address(try!(read_address(r, endian, unit.address_size))),
-        constant::DW_FORM_block2 => {
-            let len = try!(endian.read_u16(r)) as usize;
-            let val = try!(read_block(r, len));
-            AttributeData::Block(val)
-        }
-        constant::DW_FORM_block4 => {
-            let len = try!(endian.read_u32(r)) as usize;
-            let val = try!(read_block(r, len));
-            AttributeData::Block(val)
-        }
-        constant::DW_FORM_data2 => AttributeData::Data2(try!(endian.read_u16(r))),
-        constant::DW_FORM_data4 => AttributeData::Data4(try!(endian.read_u32(r))),
-        constant::DW_FORM_data8 => AttributeData::Data8(try!(endian.read_u64(r))),
-        constant::DW_FORM_string => AttributeData::String(try!(read_string(r))),
-        constant::DW_FORM_block => {
-            let len = try!(leb128::read_u64(r)) as usize;
-            let val = try!(read_block(r, len));
-            AttributeData::Block(val)
-        }
-        constant::DW_FORM_block1 => {
-            let len = try!(r.read_u8()) as usize;
-            let val = try!(read_block(r, len));
-            AttributeData::Block(val)
-        }
-        constant::DW_FORM_data1 => AttributeData::Data1(try!(r.read_u8())),
-        constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
-        constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
-        constant::DW_FORM_strp => {
-            let offset = try!(read_offset(r, endian, unit.sections.debug_str.len()));
-            let mut str_r = &unit.sections.debug_str[offset..];
-            let val = try!(read_string(&mut str_r));
-            AttributeData::String(val)
-        }
-        constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
-        constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(read_address(r, endian, unit.address_size))),
-        constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
-        constant::DW_FORM_ref2 => AttributeData::Ref(try!(endian.read_u16(r)) as usize),
-        constant::DW_FORM_ref4 => AttributeData::Ref(try!(endian.read_u32(r)) as usize),
-        constant::DW_FORM_ref8 => AttributeData::Ref(try!(endian.read_u64(r)) as usize),
-        constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r)) as usize),
-        constant::DW_FORM_indirect => {
-            let val = try!(leb128::read_u16(r));
-            try!(read_attribute_data(r, unit, constant::DwForm(val)))
-        }
-        constant::DW_FORM_sec_offset => {
-            // TODO: validate based on class
-            AttributeData::SecOffset(try!(read_offset(r, endian, std::usize::MAX)))
-        }
-        constant::DW_FORM_exprloc => {
-            let len = try!(leb128::read_u64(r)) as usize;
-            let val = try!(read_block(r, len));
-            AttributeData::ExprLoc(val)
-        }
-        constant::DW_FORM_flag_present => AttributeData::Flag(true),
-        constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(endian.read_u64(r))),
-        _ => return Err(ReadError::Unsupported(format!("attribute form {}", form.0))),
-    };
-    Ok(data)
+impl<'a> AttributeData<'a> {
+    pub fn read(
+        r: &mut &'a [u8],
+        unit: &'a CompilationUnit<'a>,
+        form: constant::DwForm,
+    ) -> Result<AttributeData<'a>, ReadError> {
+        let endian = unit.sections.endian;
+        let data = match form {
+            constant::DW_FORM_addr => AttributeData::Address(try!(read_address(r, endian, unit.address_size))),
+            constant::DW_FORM_block2 => {
+                let len = try!(endian.read_u16(r)) as usize;
+                let val = try!(read_block(r, len));
+                AttributeData::Block(val)
+            }
+            constant::DW_FORM_block4 => {
+                let len = try!(endian.read_u32(r)) as usize;
+                let val = try!(read_block(r, len));
+                AttributeData::Block(val)
+            }
+            constant::DW_FORM_data2 => AttributeData::Data2(try!(endian.read_u16(r))),
+            constant::DW_FORM_data4 => AttributeData::Data4(try!(endian.read_u32(r))),
+            constant::DW_FORM_data8 => AttributeData::Data8(try!(endian.read_u64(r))),
+            constant::DW_FORM_string => AttributeData::String(try!(read_string(r))),
+            constant::DW_FORM_block => {
+                let len = try!(leb128::read_u64(r)) as usize;
+                let val = try!(read_block(r, len));
+                AttributeData::Block(val)
+            }
+            constant::DW_FORM_block1 => {
+                let len = try!(r.read_u8()) as usize;
+                let val = try!(read_block(r, len));
+                AttributeData::Block(val)
+            }
+            constant::DW_FORM_data1 => AttributeData::Data1(try!(r.read_u8())),
+            constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
+            constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
+            constant::DW_FORM_strp => {
+                let offset = try!(read_offset(r, endian, unit.sections.debug_str.len()));
+                let mut str_r = &unit.sections.debug_str[offset..];
+                let val = try!(read_string(&mut str_r));
+                AttributeData::String(val)
+            }
+            constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
+            constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(read_address(r, endian, unit.address_size))),
+            constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
+            constant::DW_FORM_ref2 => AttributeData::Ref(try!(endian.read_u16(r)) as usize),
+            constant::DW_FORM_ref4 => AttributeData::Ref(try!(endian.read_u32(r)) as usize),
+            constant::DW_FORM_ref8 => AttributeData::Ref(try!(endian.read_u64(r)) as usize),
+            constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r)) as usize),
+            constant::DW_FORM_indirect => {
+                let val = try!(leb128::read_u16(r));
+                try!(AttributeData::read(r, unit, constant::DwForm(val)))
+            }
+            constant::DW_FORM_sec_offset => {
+                // TODO: validate based on class
+                AttributeData::SecOffset(try!(read_offset(r, endian, std::usize::MAX)))
+            }
+            constant::DW_FORM_exprloc => {
+                let len = try!(leb128::read_u64(r)) as usize;
+                let val = try!(read_block(r, len));
+                AttributeData::ExprLoc(val)
+            }
+            constant::DW_FORM_flag_present => AttributeData::Flag(true),
+            constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(endian.read_u64(r))),
+            _ => return Err(ReadError::Unsupported(format!("attribute form {}", form.0))),
+        };
+        Ok(data)
+    }
 }
 
 fn read_offset<R: Read>(r: &mut R, endian: Endian, len: usize) -> Result<usize, ReadError> {
