@@ -1,14 +1,14 @@
 extern crate byteorder;
 
 mod leb128;
-mod decode;
+mod read;
 mod endian;
 
 pub mod constant;
 pub mod display;
 pub mod elf;
 
-pub use decode::DecodeError;
+pub use read::ReadError;
 pub use endian::Endian;
 
 #[derive(Debug)]
