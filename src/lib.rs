@@ -2,18 +2,14 @@ extern crate byteorder;
 
 mod leb128;
 mod decode;
+mod endian;
 
 pub mod constant;
 pub mod display;
 pub mod elf;
 
 pub use decode::DecodeError;
-
-#[derive(Clone, Copy, Debug)]
-pub enum Endian {
-    Little,
-    Big,
-}
+pub use endian::Endian;
 
 #[derive(Debug)]
 pub struct Sections {
