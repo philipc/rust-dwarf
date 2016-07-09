@@ -1,4 +1,5 @@
 use std;
+use std::io::Read;
 use byteorder::{ReadBytesExt};
 
 use super::*;
@@ -92,7 +93,7 @@ impl<'a> CompilationUnit<'a> {
         }
 
         let abbrev_offset = try!(read_offset(&mut data, sections.endian, sections.debug_abbrev.len()));
-        let abbrev = try!(AbbrevHash::read(&sections.debug_abbrev[abbrev_offset..]));
+        let abbrev = try!(AbbrevHash::read(&mut &sections.debug_abbrev[abbrev_offset..]));
 
         let address_size = try!(data.read_u8());
 
@@ -287,7 +288,7 @@ fn read_attribute_data<'a>(
     Ok(data)
 }
 
-fn read_offset(r: &mut &[u8], endian: Endian, len: usize) -> Result<usize, ReadError> {
+fn read_offset<R: Read>(r: &mut R, endian: Endian, len: usize) -> Result<usize, ReadError> {
     // TODO: 64 bit
     let offset = try!(endian.read_u32(r)) as usize;
     if offset >= len {
@@ -315,7 +316,7 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
     Ok(val)
 }
 
-fn read_address(r: &mut &[u8], endian: Endian, address_size: u8) -> Result<usize, ReadError> {
+fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<usize, ReadError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as usize,
         8 => try!(endian.read_u64(r)) as usize,
@@ -325,9 +326,9 @@ fn read_address(r: &mut &[u8], endian: Endian, address_size: u8) -> Result<usize
 }
 
 impl AbbrevHash {
-    pub fn read(mut r: &[u8]) -> Result<AbbrevHash, ReadError> {
+    pub fn read<R: Read>(r: &mut R) -> Result<AbbrevHash, ReadError> {
         let mut abbrev_hash = std::collections::HashMap::new();
-        while let Some((code, abbrev)) = try!(Abbrev::read(&mut r)) {
+        while let Some((code, abbrev)) = try!(Abbrev::read(r)) {
             if abbrev_hash.insert(code, abbrev).is_some() {
                 return Err(ReadError::Invalid(format!("duplicate abbrev code {}", code)));
             }
@@ -341,7 +342,7 @@ impl AbbrevHash {
 }
 
 impl Abbrev {
-    pub fn read(r: &mut &[u8]) -> Result<Option<(u64, Abbrev)>, ReadError> {
+    pub fn read<R: Read>(r: &mut R) -> Result<Option<(u64, Abbrev)>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(None);
@@ -369,7 +370,7 @@ impl Abbrev {
 }
 
 impl AbbrevAttribute {
-    pub fn read(r: &mut &[u8]) -> Result<Option<AbbrevAttribute>, ReadError> {
+    pub fn read<R: Read>(r: &mut R) -> Result<Option<AbbrevAttribute>, ReadError> {
         let at = try!(leb128::read_u16(r));
         let form = try!(leb128::read_u16(r));
         if at == 0 && form == 0 {
