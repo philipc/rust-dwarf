@@ -5,6 +5,16 @@ use byteorder::WriteBytesExt;
 use super::*;
 use leb128;
 
+impl AbbrevVec {
+    pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
+        for (code, abbrev) in self.iter() {
+            try!(abbrev.write(w, code));
+        }
+        try!(Abbrev::write_null(w));
+        Ok(())
+    }
+}
+
 impl Abbrev {
     pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
         leb128::write_u64(w, 0)

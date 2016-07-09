@@ -322,10 +322,6 @@ impl AbbrevHash {
         }
         Ok(AbbrevHash(abbrev_hash))
     }
-
-    pub fn get(&self, code: u64) -> Option<&Abbrev> {
-        self.0.get(&code)
-    }
 }
 
 impl Abbrev {
