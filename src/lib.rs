@@ -1,8 +1,9 @@
 extern crate byteorder;
 
+mod endian;
 mod leb128;
 mod read;
-mod endian;
+mod write;
 
 pub mod constant;
 pub mod display;
@@ -88,7 +89,7 @@ pub struct Abbrev {
     pub attributes: Vec<AbbrevAttribute>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct AbbrevAttribute {
     pub at: constant::DwAt,
     pub form: constant::DwForm,

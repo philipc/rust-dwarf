@@ -73,7 +73,7 @@ pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
 }
 
 #[allow(dead_code)]
-pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> Result<(), Error> {
+pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
     loop {
         let byte = value as u8 & 0x7f;
         value >>= 7;
@@ -86,7 +86,7 @@ pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> Result<(), Error> {
 }
 
 #[allow(dead_code)]
-pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> Result<(), Error> {
+pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
     loop {
         let byte = value as u8 & 0x7f;
         let sign = (byte & 0x40) != 0;
@@ -100,7 +100,7 @@ pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> Result<(), Error> {
 }
 
 #[allow(dead_code)]
-pub fn write_u16<W: Write>(w: &mut W, value: u16) -> Result<(), Error> {
+pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
     write_u64(w, value as u64)
 }
 
@@ -215,7 +215,7 @@ mod test {
         {
             let mut buf = &mut [0; 2][..];
             assert!(match write_u64(&mut buf, 0xffff) {
-                Err(Error::Io(_)) => true,
+                Err(_) => true,
                 _ => false,
             });
         }
@@ -300,7 +300,7 @@ mod test {
         {
             let mut buf = &mut [0; 2][..];
             assert!(match write_i64(&mut buf, 0xffff) {
-                Err(Error::Io(_)) => true,
+                Err(_) => true,
                 _ => false,
             });
         }

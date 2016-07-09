@@ -1,5 +1,8 @@
 extern crate dwarf;
 
+use dwarf::*;
+use dwarf::constant::*;
+
 #[test]
 fn read_and_display() {
     let path = std::env::args_os().next().unwrap();
@@ -10,4 +13,18 @@ fn read_and_display() {
     while let Some(unit) = units.next().unwrap() {
         unit.display(&mut f).unwrap();
     }
+}
+
+#[test]
+fn abbrev_attribute() {
+    let mut buf = Vec::new();
+    let write_val = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };
+    write_val.write(&mut buf).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = AbbrevAttribute::read(&mut r).unwrap();
+
+    assert_eq!(&buf[..], [1, 19]);
+    assert_eq!(read_val, Some(write_val));
+    assert_eq!(r.len(), 0);
 }
