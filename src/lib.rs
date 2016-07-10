@@ -57,7 +57,7 @@ pub struct Die<'a> {
     pub attributes: Vec<Attribute<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Attribute<'a> {
     pub at: constant::DwAt,
     pub data: AttributeData<'a>,

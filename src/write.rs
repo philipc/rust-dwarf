@@ -18,6 +18,23 @@ impl std::convert::From<std::io::Error> for WriteError {
     }
 }
 
+impl<'a> Attribute<'a> {
+    pub fn write<W: Write>(
+        &self,
+        w: &mut W,
+        endian: Endian,
+        address_size: u8,
+        debug_str: &mut Vec<u8>,
+        abbrev: &AbbrevAttribute,
+    ) -> Result<(), WriteError> {
+        if self.at != abbrev.at {
+            return Err(WriteError::Invalid("attribute type mismatch".to_string()));
+        }
+        try!(self.data.write(w, endian, address_size, debug_str, abbrev.form, false));
+        Ok(())
+    }
+}
+
 impl<'a> AttributeData<'a> {
     pub fn write<W: Write>(
         &self,

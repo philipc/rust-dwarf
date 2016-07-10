@@ -181,7 +181,7 @@ impl<'a> Die<'a> {
 
         let mut attributes = Vec::new();
         for abbrev_attribute in &abbrev.attributes {
-            attributes.push(try!(Attribute::read(r, unit, abbrev_attribute)));
+            attributes.push(try!(Attribute::read(r, unit.sections.endian, unit.address_size, &unit.sections.debug_str[..], abbrev_attribute)));
         }
 
         Ok(Die {
@@ -196,10 +196,12 @@ impl<'a> Die<'a> {
 impl<'a> Attribute<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        unit: &'a CompilationUnit<'a>,
+        endian: Endian,
+        address_size: u8,
+        debug_str: &'a [u8],
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
-        let data = try!(AttributeData::read(r, unit.sections.endian, unit.address_size, &unit.sections.debug_str[..], abbrev.form));
+        let data = try!(AttributeData::read(r, endian, address_size, debug_str, abbrev.form));
         Ok(Attribute {
             at: abbrev.at,
             data: data,

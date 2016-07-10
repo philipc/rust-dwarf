@@ -16,6 +16,30 @@ fn read_and_display() {
 }
 
 #[test]
+fn attribute() {
+    let endian = Endian::Little;
+    let address_size = 4;
+    let abbrev = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };
+    let write_val = Attribute {
+        at: DW_AT_sibling,
+        data: AttributeData::Ref(0x01234567),
+    };
+
+    let mut debug_str = Vec::new();
+    let mut buf = Vec::new();
+    write_val.write(
+        &mut buf, endian, address_size, &mut debug_str, &abbrev).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = Attribute::read(
+        &mut r, endian, address_size, &debug_str[..], &abbrev).unwrap();
+
+    assert_eq!(&buf[..], [0x67, 0x45, 0x23, 0x01]);
+    assert_eq!(r.len(), 0);
+    assert_eq!(read_val, write_val);
+}
+
+#[test]
 fn attribute_data() {
     let endian = Endian::Little;
     let address_size = 4;
