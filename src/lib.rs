@@ -11,8 +11,9 @@ pub mod constant;
 pub mod display;
 pub mod elf;
 
-pub use read::ReadError;
 pub use endian::Endian;
+pub use read::ReadError;
+pub use write::WriteError;
 
 #[derive(Debug)]
 pub struct Sections {
@@ -62,7 +63,7 @@ pub struct Attribute<'a> {
     pub data: AttributeData<'a>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AttributeData<'a> {
     Address(u64),
     Block(&'a [u8]),
