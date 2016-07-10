@@ -1,7 +1,5 @@
 extern crate byteorder;
 
-use std::iter::Iterator;
-
 mod endian;
 mod leb128;
 mod read;
@@ -49,7 +47,7 @@ pub struct DieCursor<'a> {
     next_child: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Die<'a> {
     pub offset: usize,
     pub tag: constant::DwTag,
@@ -88,14 +86,9 @@ pub struct AbbrevHash(std::collections::HashMap<u64, Abbrev>);
 #[derive(Debug)]
 pub struct AbbrevVec(Vec<Abbrev>);
 
-#[derive(Debug)]
-pub struct AbbrevVecIter<'a> {
-    abbrev: std::slice::Iter<'a, Abbrev>,
-    code: u64,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Abbrev {
+    pub code: u64,
     pub tag: constant::DwTag,
     pub children: bool,
     pub attributes: Vec<AbbrevAttribute>,
@@ -123,6 +116,10 @@ impl<'a> Die<'a> {
 }
 
 impl AbbrevHash {
+    pub fn new() -> Self {
+        AbbrevHash(std::collections::HashMap::new())
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -133,6 +130,10 @@ impl AbbrevHash {
 
     pub fn get(&self, code: u64) -> Option<&Abbrev> {
         self.0.get(&code)
+    }
+
+    pub fn insert(&mut self, abbrev: Abbrev) -> Option<Abbrev> {
+        self.0.insert(abbrev.code, abbrev)
     }
 }
 
@@ -145,33 +146,8 @@ impl AbbrevVec {
         self.0.len()
     }
 
-    pub fn iter<'a>(&'a self) -> AbbrevVecIter<'a> {
-        AbbrevVecIter {
-            abbrev: self.0.iter(),
-            code: 0,
-        }
-    }
-
-    pub fn get(&self, code: u64) -> Option<&Abbrev> {
-        let code = code as usize;
-        if code == 0 || code - 1 >= self.0.len() {
-            return None
-        }
-        Some(&self.0[code - 1])
-    }
-}
-
-impl<'a> Iterator for AbbrevVecIter<'a> {
-    type Item = (u64, &'a Abbrev);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.abbrev.next() {
-            Some(abbrev) => {
-                self.code += 1;
-                Some((self.code, abbrev))
-            },
-            None => None
-        }
+    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Abbrev> {
+        self.0.iter()
     }
 }
 

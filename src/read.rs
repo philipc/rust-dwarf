@@ -146,7 +146,9 @@ impl<'a> DieCursor<'a> {
         }
 
         let mut r = self.data;
-        let die = try!(Die::read(&mut r, self.unit, self.offset));
+        let die = try!(Die::read(
+                &mut r, self.offset, self.unit.sections.endian, self.unit.address_size,
+                &self.unit.sections.debug_str[..], &self.unit.abbrev));
         self.next_child = die.children;
         self.offset += self.data.len() - r.len();
         self.data = r;
@@ -168,20 +170,27 @@ impl<'a> DieCursor<'a> {
 }
 
 impl<'a> Die<'a> {
-    pub fn read(r: &mut &'a [u8], unit: &'a CompilationUnit<'a>, offset: usize) -> Result<Die<'a>, ReadError> {
+    pub fn read(
+        r: &mut &'a [u8],
+        offset: usize,
+        endian: Endian,
+        address_size: u8,
+        debug_str: &'a [u8],
+        abbrev_hash: &AbbrevHash,
+    ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(Die::null(offset));
         }
 
-        let abbrev = match unit.abbrev.get(code) {
+        let abbrev = match abbrev_hash.get(code) {
             Some(abbrev) => abbrev,
             None => return Err(ReadError::Invalid(format!("missing abbrev {}", code))),
         };
 
         let mut attributes = Vec::new();
         for abbrev_attribute in &abbrev.attributes {
-            attributes.push(try!(Attribute::read(r, unit.sections.endian, unit.address_size, &unit.sections.debug_str[..], abbrev_attribute)));
+            attributes.push(try!(Attribute::read(r, endian, address_size, debug_str, abbrev_attribute)));
         }
 
         Ok(Die {
@@ -319,18 +328,19 @@ fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<
 
 impl AbbrevHash {
     pub fn read<R: Read>(r: &mut R) -> Result<AbbrevHash, ReadError> {
-        let mut abbrev_hash = std::collections::HashMap::new();
-        while let Some((code, abbrev)) = try!(Abbrev::read(r)) {
-            if abbrev_hash.insert(code, abbrev).is_some() {
+        let mut abbrev_hash = AbbrevHash::new();
+        while let Some(abbrev) = try!(Abbrev::read(r)) {
+            let code = abbrev.code;
+            if abbrev_hash.insert(abbrev).is_some() {
                 return Err(ReadError::Invalid(format!("duplicate abbrev code {}", code)));
             }
         }
-        Ok(AbbrevHash(abbrev_hash))
+        Ok(abbrev_hash)
     }
 }
 
 impl Abbrev {
-    pub fn read<R: Read>(r: &mut R) -> Result<Option<(u64, Abbrev)>, ReadError> {
+    pub fn read<R: Read>(r: &mut R) -> Result<Option<Abbrev>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(None);
@@ -349,11 +359,12 @@ impl Abbrev {
             attributes.push(attribute);
         }
 
-        Ok(Some((code, Abbrev {
+        Ok(Some(Abbrev {
+            code: code,
             tag: constant::DwTag(tag),
             children: children,
             attributes: attributes,
-        })))
+        }))
     }
 }
 

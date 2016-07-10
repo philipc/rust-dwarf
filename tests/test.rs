@@ -16,6 +16,41 @@ fn read_and_display() {
 }
 
 #[test]
+fn die() {
+    let endian = Endian::Little;
+    let address_size = 4;
+    let mut abbrev_hash = AbbrevHash::new();
+    abbrev_hash.insert(Abbrev {
+        code: 1,
+        tag: DW_TAG_namespace,
+        children: true,
+        attributes: vec![
+            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_strp },
+        ],
+    });
+    let write_val = Die {
+        offset: 0,
+        tag: DW_TAG_namespace,
+        children: true,
+        attributes: vec![
+            Attribute { at: DW_AT_name, data: AttributeData::String("test") },
+        ],
+    };
+
+    let mut debug_str = Vec::new();
+    let mut buf = Vec::new();
+    write_val.write(&mut buf, endian, address_size, &mut debug_str, abbrev_hash.get(1).unwrap()).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = Die::read(&mut r, write_val.offset, endian, address_size, &debug_str[..], &abbrev_hash).unwrap();
+
+    assert_eq!(&buf[..], [1, 0, 0, 0, 0]);
+    assert_eq!(&debug_str[..], [b't', b'e', b's', b't', 0]);
+    assert_eq!(r.len(), 0);
+    assert_eq!(read_val, write_val);
+}
+
+#[test]
 fn attribute() {
     let endian = Endian::Little;
     let address_size = 4;
@@ -103,6 +138,7 @@ fn attribute_data() {
 fn abbrev_container() {
     let write_val = AbbrevVec::new(vec![
         Abbrev {
+            code: 1,
             tag: DW_TAG_namespace,
             children: true,
             attributes: vec![
@@ -120,15 +156,15 @@ fn abbrev_container() {
     assert_eq!(&buf[..], [1, 57, 1, 3, 14, 0, 0, 0]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val.len(), write_val.len());
-    for (code, abbrev) in write_val.iter() {
-        assert_eq!(Some(abbrev), read_val.get(code));
+    for abbrev in write_val.iter() {
+        assert_eq!(Some(abbrev), read_val.get(abbrev.code));
     }
 }
 
 #[test]
 fn abbrev() {
-    let write_code = 1;
     let write_val = Abbrev {
+        code: 1,
         tag: DW_TAG_namespace,
         children: true,
         attributes: vec![
@@ -137,14 +173,14 @@ fn abbrev() {
     };
 
     let mut buf = Vec::new();
-    write_val.write(&mut buf, write_code).unwrap();
+    write_val.write(&mut buf).unwrap();
 
     let mut r = &buf[..];
     let read_val = Abbrev::read(&mut r).unwrap();
 
     assert_eq!(&buf[..], [1, 57, 1, 3, 14, 0, 0]);
     assert_eq!(r.len(), 0);
-    assert_eq!(read_val, Some((write_code, write_val)));
+    assert_eq!(read_val, Some(write_val));
 }
 
 #[test]

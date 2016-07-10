@@ -18,6 +18,37 @@ impl std::convert::From<std::io::Error> for WriteError {
     }
 }
 
+impl<'a> Die<'a> {
+    pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
+        leb128::write_u64(w, 0)
+    }
+
+    pub fn write<W: Write>(
+        &self,
+        w: &mut W,
+        endian: Endian,
+        address_size: u8,
+        debug_str: &mut Vec<u8>,
+        abbrev: &Abbrev,
+    ) -> Result<(), WriteError> {
+        if self.children != abbrev.children {
+            return Err(WriteError::Invalid("die/abbrev children mismatch".to_string()));
+        }
+        if self.attributes.len() != abbrev.attributes.len() {
+            return Err(WriteError::Invalid("die/abbrev attribute length mismatch".to_string()));
+        }
+        try!(leb128::write_u64(w, abbrev.code));
+        // This probably should never happen
+        if abbrev.code == 0 {
+            return Ok(());
+        }
+        for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
+            try!(attribute.write(w, endian, address_size, debug_str, abbrev_attribute));
+        }
+        Ok(())
+    }
+}
+
 impl<'a> Attribute<'a> {
     pub fn write<W: Write>(
         &self,
@@ -154,8 +185,8 @@ fn write_address<W: Write>(w: &mut W, endian: Endian, address_size: u8, val: u64
 
 impl AbbrevVec {
     pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
-        for (code, abbrev) in self.iter() {
-            try!(abbrev.write(w, code));
+        for abbrev in self.iter() {
+            try!(abbrev.write(w));
         }
         try!(Abbrev::write_null(w));
         Ok(())
@@ -167,10 +198,10 @@ impl Abbrev {
         leb128::write_u64(w, 0)
     }
 
-    pub fn write<W: Write>(&self, w: &mut W, code: u64) -> std::io::Result<()> {
-        try!(leb128::write_u64(w, code));
+    pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
+        try!(leb128::write_u64(w, self.code));
         // This probably should never happen
-        if code == 0 {
+        if self.code == 0 {
             return Ok(());
         }
 
