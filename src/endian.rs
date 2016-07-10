@@ -10,6 +10,16 @@ pub enum Endian {
 }
 
 impl Endian {
+    #[cfg(target_endian = "little")]
+    pub fn native() -> Self {
+        Endian::Little
+    }
+
+    #[cfg(target_endian = "big")]
+    pub fn native() -> Self {
+        Endian::Big
+    }
+
     pub fn read_u16<R: Read>(&self, r: &mut R) -> Result<u16, std::io::Error> {
         match *self {
             Endian::Little => r.read_u16::<byteorder::LittleEndian>(),
