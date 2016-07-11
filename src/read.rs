@@ -110,8 +110,18 @@ impl<'a> CompilationUnit<'a> {
         })
     }
 
-    pub fn die_buffer(&'a self, sections: &'a Sections) -> Result<DieBuffer<'a>, ReadError> {
-        DieBuffer::read(sections, self)
+    pub fn abbrev(&'a self, sections: &'a Sections) -> Result<AbbrevHash, ReadError> {
+        AbbrevHash::read(&mut &sections.debug_abbrev[self.abbrev_offset..])
+    }
+
+    pub fn die_buffer(&'a self, sections: &'a Sections) -> DieBuffer<'a> {
+        DieBuffer::new(
+            sections.endian,
+            self.address_size,
+            &*sections.debug_str,
+            self.data,
+            self.data_offset,
+        )
     }
 }
 
@@ -120,7 +130,6 @@ impl<'a> DieBuffer<'a> {
         endian: Endian,
         address_size: u8,
         debug_str: &'a [u8],
-        abbrev: AbbrevHash,
         data: &'a [u8],
         offset: usize,
     ) -> DieBuffer<'a> {
@@ -128,32 +137,16 @@ impl<'a> DieBuffer<'a> {
             endian: endian,
             address_size: address_size,
             debug_str: Cow::Borrowed(debug_str),
-            abbrev: abbrev,
             data: Cow::Borrowed(data),
             offset: offset,
         }
     }
 
-    pub fn read(
-        sections: &'a Sections, unit: &'a CompilationUnit,
-    ) -> Result<DieBuffer<'a>, ReadError> {
-        let abbrev = try!(AbbrevHash::read(&mut &sections.debug_abbrev[unit.abbrev_offset..]));
-        Ok(DieBuffer {
-            endian: sections.endian,
-            address_size: unit.address_size,
-            // TODO: offset_size: u8,
-            debug_str: Cow::Borrowed(&*sections.debug_str),
-            abbrev: abbrev,
-            data: Cow::Borrowed(unit.data),
-            offset: unit.data_offset,
-        })
+    pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a> {
+        DieCursor::new(self.data.deref(), self.offset, self, abbrev)
     }
 
-    pub fn entries(&'a self) -> DieCursor<'a> {
-        DieCursor::new(self.data.deref(), self.offset, self)
-    }
-
-    pub fn entry(&'a self, offset: usize) -> Option<DieCursor<'a>> {
+    pub fn entry(&'a self, offset: usize, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a>> {
         if offset < self.offset {
             return None;
         }
@@ -161,16 +154,17 @@ impl<'a> DieBuffer<'a> {
         if relative_offset >= self.data.len() {
             return None;
         }
-        Some(DieCursor::new(&self.data[relative_offset..], offset, self))
+        Some(DieCursor::new(&self.data[relative_offset..], offset, self, abbrev))
     }
 }
 
 impl<'a> DieCursor<'a> {
-    pub fn new(r: &'a [u8], offset: usize, buffer: &'a DieBuffer<'a>) -> Self {
+    pub fn new(r: &'a [u8], offset: usize, buffer: &'a DieBuffer<'a>, abbrev: &'a AbbrevHash) -> Self {
         DieCursor {
             r: r,
             offset: offset,
             buffer: buffer,
+            abbrev: abbrev,
             next_child: false,
         }
     }
@@ -185,7 +179,7 @@ impl<'a> DieCursor<'a> {
         }
 
         let mut r = self.r;
-        let die = try!(Die::read(&mut r, self.offset, self.buffer));
+        let die = try!(Die::read(&mut r, self.offset, self.buffer, self.abbrev));
         self.next_child = die.children;
         self.offset += self.r.len() - r.len();
         self.r = r;
@@ -210,14 +204,15 @@ impl<'a> Die<'a> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        buffer: &'a DieBuffer<'a>
+        buffer: &'a DieBuffer<'a>,
+        abbrev_hash: &'a AbbrevHash,
     ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(Die::null(offset));
         }
 
-        let abbrev = match buffer.abbrev.get(code) {
+        let abbrev = match abbrev_hash.get(code) {
             Some(abbrev) => abbrev,
             None => return Err(ReadError::Invalid(format!("missing abbrev {}", code))),
         };

@@ -10,8 +10,9 @@ fn read(b: &mut test::Bencher) {
     b.iter(|| {
         let mut units = sections.compilation_units();
         while let Some(unit) = units.next().unwrap() {
-            let buffer = unit.die_buffer(&sections).unwrap();
-            let mut entries = buffer.entries();
+            let abbrev = unit.abbrev(&sections).unwrap();
+            let buffer = unit.die_buffer(&sections);
+            let mut entries = buffer.entries(&abbrev);
             while let Some(_) = entries.next().unwrap() {
             }
         }
@@ -27,8 +28,8 @@ fn display(b: &mut test::Bencher) {
     b.iter(|| {
         let mut units = sections.compilation_units();
         while let Some(unit) = units.next().unwrap() {
-            let buffer = unit.die_buffer(&sections).unwrap();
-            buffer.entries().display(&mut f).unwrap();
+            let abbrev = unit.abbrev(&sections).unwrap();
+            unit.die_buffer(&sections).entries(&abbrev).display(&mut f).unwrap();
         }
     });
 }

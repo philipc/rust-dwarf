@@ -11,8 +11,8 @@ fn read_and_display() {
     let mut buf = Vec::new();
     let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     while let Some(unit) = units.next().unwrap() {
-        let buffer = unit.die_buffer(&sections).unwrap();
-        buffer.entries().display(&mut f).unwrap();
+        let abbrev = unit.abbrev(&sections).unwrap();
+        unit.die_buffer(&sections).entries(&abbrev).display(&mut f).unwrap();
     }
 }
 
@@ -44,9 +44,9 @@ fn die() {
     let mut buf = Vec::new();
     write_val.write(&mut buf, endian, address_size, &mut debug_str, &abbrev_hash).unwrap();
 
-    let buffer = DieBuffer::new(endian, address_size, &*debug_str, abbrev_hash, &*buf, 0);
+    let buffer = DieBuffer::new(endian, address_size, &*debug_str, &*buf, 0);
     let mut r = &*buf;
-    let read_val = Die::read(&mut r, write_val.offset, &buffer).unwrap();
+    let read_val = Die::read(&mut r, write_val.offset, &buffer, &abbrev_hash).unwrap();
 
     assert_eq!(&buf[..], [1, 0, 0, 0, 0]);
     assert_eq!(&debug_str[..], [b't', b'e', b's', b't', 0]);
@@ -69,7 +69,7 @@ fn attribute() {
     write_val.write(
         &mut buf, endian, address_size, &mut debug_str, &abbrev).unwrap();
 
-    let buffer = DieBuffer::new(endian, address_size, &*debug_str, AbbrevHash::new(), &[], 0);
+    let buffer = DieBuffer::new(endian, address_size, &*debug_str, &[], 0);
     let mut r = &*buf;
     let read_val = Attribute::read(&mut r, &buffer, &abbrev).unwrap();
 
@@ -117,7 +117,7 @@ fn attribute_data() {
                 &mut buf, endian, address_size, &mut debug_str, form, indirect).unwrap();
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
-            let buffer = DieBuffer::new(endian, address_size, &*debug_str, AbbrevHash::new(), &[], 0);
+            let buffer = DieBuffer::new(endian, address_size, &*debug_str, &[], 0);
             let mut r = &*buf;
             let read_val = AttributeData::read(&mut r, &buffer, read_form).unwrap();
 
