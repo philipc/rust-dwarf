@@ -1,5 +1,7 @@
 extern crate dwarf;
 
+use std::borrow::Cow;
+
 use dwarf::*;
 use dwarf::constant::*;
 
@@ -40,16 +42,15 @@ fn die() {
         ],
     };
 
-    let mut debug_str = Vec::new();
+    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
     let mut buf = Vec::new();
-    write_val.write(&mut buf, endian, address_size, &mut debug_str, &abbrev_hash).unwrap();
+    write_val.write(&mut buf, &mut buffer, &abbrev_hash).unwrap();
 
-    let buffer = DieBuffer::new(endian, address_size, &*debug_str, &*buf, 0);
     let mut r = &*buf;
     let read_val = Die::read(&mut r, write_val.offset, &buffer, &abbrev_hash).unwrap();
 
     assert_eq!(&buf[..], [1, 0, 0, 0, 0]);
-    assert_eq!(&debug_str[..], [b't', b'e', b's', b't', 0]);
+    assert_eq!(buffer.debug_str(), [b't', b'e', b's', b't', 0]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
 }
@@ -64,12 +65,10 @@ fn attribute() {
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut debug_str = Vec::new();
+    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
     let mut buf = Vec::new();
-    write_val.write(
-        &mut buf, endian, address_size, &mut debug_str, &abbrev).unwrap();
+    write_val.write(&mut buf, &mut buffer, &abbrev).unwrap();
 
-    let buffer = DieBuffer::new(endian, address_size, &*debug_str, &[], 0);
     let mut r = &*buf;
     let read_val = Attribute::read(&mut r, &buffer, &abbrev).unwrap();
 
@@ -111,13 +110,11 @@ fn attribute_data() {
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
         for &indirect in &[false, true] {
-            let mut debug_str = Vec::new();
+            let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
             let mut buf = Vec::new();
-            write_val.write(
-                &mut buf, endian, address_size, &mut debug_str, form, indirect).unwrap();
+            write_val.write(&mut buf, &mut buffer, form, indirect).unwrap();
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
-            let buffer = DieBuffer::new(endian, address_size, &*debug_str, &[], 0);
             let mut r = &*buf;
             let read_val = AttributeData::read(&mut r, &buffer, read_form).unwrap();
 
@@ -130,9 +127,9 @@ fn attribute_data() {
             assert_eq!(r.len(), 0);
             assert_eq!(read_val, *write_val);
             if form == DW_FORM_strp {
-                assert_eq!(debug_str, [b't', b'e', b's', b't', 0]);
+                assert_eq!(buffer.debug_str(), [b't', b'e', b's', b't', 0]);
             } else {
-                assert_eq!(debug_str.len(), 0);
+                assert_eq!(buffer.debug_str().len(), 0);
             }
         }
     }

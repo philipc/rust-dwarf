@@ -26,9 +26,7 @@ impl<'a> Die<'a> {
     pub fn write<W: Write>(
         &self,
         w: &mut W,
-        endian: Endian,
-        address_size: u8,
-        debug_str: &mut Vec<u8>,
+        buffer: &mut DieBuffer<'a>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
         let abbrev = match abbrev_hash.get(self.code) {
@@ -47,7 +45,7 @@ impl<'a> Die<'a> {
             return Ok(());
         }
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
-            try!(attribute.write(w, endian, address_size, debug_str, abbrev_attribute));
+            try!(attribute.write(w, buffer, abbrev_attribute));
         }
         Ok(())
     }
@@ -57,15 +55,13 @@ impl<'a> Attribute<'a> {
     pub fn write<W: Write>(
         &self,
         w: &mut W,
-        endian: Endian,
-        address_size: u8,
-        debug_str: &mut Vec<u8>,
+        buffer: &mut DieBuffer<'a>,
         abbrev: &AbbrevAttribute,
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
             return Err(WriteError::Invalid("attribute type mismatch".to_string()));
         }
-        try!(self.data.write(w, endian, address_size, debug_str, abbrev.form, false));
+        try!(self.data.write(w, buffer, abbrev.form, false));
         Ok(())
     }
 }
@@ -74,9 +70,7 @@ impl<'a> AttributeData<'a> {
     pub fn write<W: Write>(
         &self,
         w: &mut W,
-        endian: Endian,
-        address_size: u8,
-        debug_str: &mut Vec<u8>,
+        buffer: &mut DieBuffer<'a>,
         form: constant::DwForm,
         indirect: bool,
     ) -> Result<(), WriteError> {
@@ -85,18 +79,18 @@ impl<'a> AttributeData<'a> {
         }
         match (self, form) {
             (&AttributeData::Address(ref val), constant::DW_FORM_addr) => {
-                try!(write_address(w, endian, address_size, *val));
+                try!(write_address(w, buffer.endian, buffer.address_size, *val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block1) => {
                 try!(w.write_u8(val.len() as u8));
                 try!(w.write_all(val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block2) => {
-                try!(endian.write_u16(w, val.len() as u16));
+                try!(buffer.endian.write_u16(w, val.len() as u16));
                 try!(w.write_all(val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block4) => {
-                try!(endian.write_u32(w, val.len() as u32));
+                try!(buffer.endian.write_u32(w, val.len() as u32));
                 try!(w.write_all(val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block) => {
@@ -107,13 +101,13 @@ impl<'a> AttributeData<'a> {
                 try!(w.write_u8(*val));
             },
             (&AttributeData::Data2(ref val), constant::DW_FORM_data2) => {
-                try!(endian.write_u16(w, *val));
+                try!(buffer.endian.write_u16(w, *val));
             },
             (&AttributeData::Data4(ref val), constant::DW_FORM_data4) => {
-                try!(endian.write_u32(w, *val));
+                try!(buffer.endian.write_u32(w, *val));
             },
             (&AttributeData::Data8(ref val), constant::DW_FORM_data8) => {
-                try!(endian.write_u64(w, *val));
+                try!(buffer.endian.write_u64(w, *val));
             },
             (&AttributeData::UData(ref val), constant::DW_FORM_udata) => {
                 try!(leb128::write_u64(w, *val));
@@ -133,8 +127,9 @@ impl<'a> AttributeData<'a> {
             },
             (&AttributeData::String(ref val), constant::DW_FORM_strp) => {
                 // FIXME: reuse existing strings
+                let debug_str = buffer.debug_str.to_mut();
                 let offset = debug_str.len();
-                try!(write_offset(w, endian, offset));
+                try!(write_offset(w, buffer.endian, offset));
                 try!(debug_str.write_all(val.as_bytes()));
                 try!(debug_str.write_u8(0));
             },
@@ -142,25 +137,25 @@ impl<'a> AttributeData<'a> {
                 try!(w.write_u8(*val as u8));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref2) => {
-                try!(endian.write_u16(w, *val as u16));
+                try!(buffer.endian.write_u16(w, *val as u16));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref4) => {
-                try!(endian.write_u32(w, *val as u32));
+                try!(buffer.endian.write_u32(w, *val as u32));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref8) => {
-                try!(endian.write_u64(w, *val as u64));
+                try!(buffer.endian.write_u64(w, *val as u64));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref_udata) => {
                 try!(leb128::write_u64(w, *val as u64));
             },
             (&AttributeData::RefAddress(ref val), constant::DW_FORM_ref_addr) => {
-                try!(write_address(w, endian, address_size, *val));
+                try!(write_address(w, buffer.endian, buffer.address_size, *val));
             },
             (&AttributeData::RefSig(ref val), constant::DW_FORM_ref_sig8) => {
-                try!(endian.write_u64(w, *val));
+                try!(buffer.endian.write_u64(w, *val));
             },
             (&AttributeData::SecOffset(ref val), constant::DW_FORM_sec_offset) => {
-                try!(write_offset(w, endian, *val));
+                try!(write_offset(w, buffer.endian, *val));
             },
             (&AttributeData::ExprLoc(ref val), constant::DW_FORM_exprloc) => {
                 try!(leb128::write_u64(w, val.len() as u64));

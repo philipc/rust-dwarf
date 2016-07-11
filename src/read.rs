@@ -118,8 +118,8 @@ impl<'a> CompilationUnit<'a> {
         DieBuffer::new(
             sections.endian,
             self.address_size,
-            &*sections.debug_str,
-            self.data,
+            Cow::Borrowed(&*sections.debug_str),
+            Cow::Borrowed(self.data),
             self.data_offset,
         )
     }
@@ -129,15 +129,15 @@ impl<'a> DieBuffer<'a> {
     pub fn new(
         endian: Endian,
         address_size: u8,
-        debug_str: &'a [u8],
-        data: &'a [u8],
+        debug_str: Cow<'a, [u8]>,
+        data: Cow<'a, [u8]>,
         offset: usize,
     ) -> DieBuffer<'a> {
         DieBuffer {
             endian: endian,
             address_size: address_size,
-            debug_str: Cow::Borrowed(debug_str),
-            data: Cow::Borrowed(data),
+            debug_str: debug_str,
+            data: data,
             offset: offset,
         }
     }
@@ -155,6 +155,10 @@ impl<'a> DieBuffer<'a> {
             return None;
         }
         Some(DieCursor::new(&self.data[relative_offset..], offset, self, abbrev))
+    }
+
+    pub fn debug_str(&'a self) -> &'a [u8] {
+        &*self.debug_str
     }
 }
 
