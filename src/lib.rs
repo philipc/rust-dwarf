@@ -54,10 +54,7 @@ pub struct DieBuffer<'a> {
 pub struct DieCursor<'a> {
     r: &'a [u8],
     offset: usize,
-    endian: Endian,
-    address_size: u8,
-    debug_str: &'a [u8],
-    abbrev: &'a AbbrevHash,
+    buffer: &'a DieBuffer<'a>,
     next_child: bool,
 }
 

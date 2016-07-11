@@ -148,7 +148,7 @@ impl<'a> DieBuffer<'a> {
     }
 
     pub fn entries(&'a self) -> DieCursor<'a> {
-        DieCursor::new(self.data, self.offset, self.endian, self.address_size, self.debug_str, &self.abbrev)
+        DieCursor::new(self.data, self.offset, self)
     }
 
     pub fn entry(&'a self, offset: usize) -> Option<DieCursor<'a>> {
@@ -159,26 +159,16 @@ impl<'a> DieBuffer<'a> {
         if relative_offset >= self.data.len() {
             return None;
         }
-        Some(DieCursor::new(&self.data[relative_offset..], offset, self.endian, self.address_size, self.debug_str, &self.abbrev))
+        Some(DieCursor::new(&self.data[relative_offset..], offset, self))
     }
 }
 
 impl<'a> DieCursor<'a> {
-    pub fn new(
-        r: &'a [u8],
-        offset: usize,
-        endian: Endian,
-        address_size: u8,
-        debug_str: &'a [u8],
-        abbrev: &'a AbbrevHash
-    ) -> Self {
+    pub fn new(r: &'a [u8], offset: usize, buffer: &'a DieBuffer<'a>) -> Self {
         DieCursor {
             r: r,
             offset: offset,
-            endian: endian,
-            address_size: address_size,
-            debug_str: debug_str,
-            abbrev: abbrev,
+            buffer: buffer,
             next_child: false,
         }
     }
@@ -193,14 +183,7 @@ impl<'a> DieCursor<'a> {
         }
 
         let mut r = self.r;
-        let die = try!(Die::read(
-            &mut r,
-            self.offset,
-            self.endian,
-            self.address_size,
-            self.debug_str,
-            &self.abbrev,
-        ));
+        let die = try!(Die::read(&mut r, self.offset, self.buffer));
         self.next_child = die.children;
         self.offset += self.r.len() - r.len();
         self.r = r;
@@ -225,24 +208,21 @@ impl<'a> Die<'a> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        endian: Endian,
-        address_size: u8,
-        debug_str: &'a [u8],
-        abbrev_hash: &AbbrevHash,
+        buffer: &'a DieBuffer<'a>
     ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(Die::null(offset));
         }
 
-        let abbrev = match abbrev_hash.get(code) {
+        let abbrev = match buffer.abbrev.get(code) {
             Some(abbrev) => abbrev,
             None => return Err(ReadError::Invalid(format!("missing abbrev {}", code))),
         };
 
         let mut attributes = Vec::new();
         for abbrev_attribute in &abbrev.attributes {
-            attributes.push(try!(Attribute::read(r, endian, address_size, debug_str, abbrev_attribute)));
+            attributes.push(try!(Attribute::read(r, buffer, abbrev_attribute)));
         }
 
         Ok(Die {
@@ -257,12 +237,10 @@ impl<'a> Die<'a> {
 impl<'a> Attribute<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        endian: Endian,
-        address_size: u8,
-        debug_str: &'a [u8],
+        buffer: &'a DieBuffer<'a>,
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
-        let data = try!(AttributeData::read(r, endian, address_size, debug_str, abbrev.form));
+        let data = try!(AttributeData::read(r, buffer, abbrev.form));
         Ok(Attribute {
             at: abbrev.at,
             data: data,
@@ -273,26 +251,27 @@ impl<'a> Attribute<'a> {
 impl<'a> AttributeData<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        endian: Endian,
-        address_size: u8,
-        debug_str: &'a [u8],
+        buffer: &'a DieBuffer<'a>,
         form: constant::DwForm,
     ) -> Result<AttributeData<'a>, ReadError> {
         let data = match form {
-            constant::DW_FORM_addr => AttributeData::Address(try!(read_address(r, endian, address_size))),
+            constant::DW_FORM_addr => {
+                let val = try!(read_address(r, buffer.endian, buffer.address_size));
+                AttributeData::Address(val)
+            }
             constant::DW_FORM_block2 => {
-                let len = try!(endian.read_u16(r)) as usize;
+                let len = try!(buffer.endian.read_u16(r)) as usize;
                 let val = try!(read_block(r, len));
                 AttributeData::Block(val)
             }
             constant::DW_FORM_block4 => {
-                let len = try!(endian.read_u32(r)) as usize;
+                let len = try!(buffer.endian.read_u32(r)) as usize;
                 let val = try!(read_block(r, len));
                 AttributeData::Block(val)
             }
-            constant::DW_FORM_data2 => AttributeData::Data2(try!(endian.read_u16(r))),
-            constant::DW_FORM_data4 => AttributeData::Data4(try!(endian.read_u32(r))),
-            constant::DW_FORM_data8 => AttributeData::Data8(try!(endian.read_u64(r))),
+            constant::DW_FORM_data2 => AttributeData::Data2(try!(buffer.endian.read_u16(r))),
+            constant::DW_FORM_data4 => AttributeData::Data4(try!(buffer.endian.read_u32(r))),
+            constant::DW_FORM_data8 => AttributeData::Data8(try!(buffer.endian.read_u64(r))),
             constant::DW_FORM_string => AttributeData::String(try!(read_string(r))),
             constant::DW_FORM_block => {
                 let len = try!(leb128::read_u64(r)) as usize;
@@ -308,25 +287,29 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
             constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
             constant::DW_FORM_strp => {
-                let offset = try!(read_offset(r, endian, debug_str.len()));
-                let mut str_r = &debug_str[offset..];
+                let offset = try!(read_offset(r, buffer.endian, buffer.debug_str.len()));
+                let mut str_r = &buffer.debug_str[offset..];
                 let val = try!(read_string(&mut str_r));
                 AttributeData::String(val)
             }
             constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
-            constant::DW_FORM_ref_addr => AttributeData::RefAddress(try!(read_address(r, endian, address_size))),
+            constant::DW_FORM_ref_addr => {
+                let val = try!(read_address(r, buffer.endian, buffer.address_size));
+                AttributeData::RefAddress(val)
+            }
             constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
-            constant::DW_FORM_ref2 => AttributeData::Ref(try!(endian.read_u16(r)) as usize),
-            constant::DW_FORM_ref4 => AttributeData::Ref(try!(endian.read_u32(r)) as usize),
-            constant::DW_FORM_ref8 => AttributeData::Ref(try!(endian.read_u64(r)) as usize),
+            constant::DW_FORM_ref2 => AttributeData::Ref(try!(buffer.endian.read_u16(r)) as usize),
+            constant::DW_FORM_ref4 => AttributeData::Ref(try!(buffer.endian.read_u32(r)) as usize),
+            constant::DW_FORM_ref8 => AttributeData::Ref(try!(buffer.endian.read_u64(r)) as usize),
             constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r)) as usize),
             constant::DW_FORM_indirect => {
                 let val = try!(leb128::read_u16(r));
-                try!(AttributeData::read(r, endian, address_size, debug_str, constant::DwForm(val)))
+                try!(AttributeData::read(r, buffer, constant::DwForm(val)))
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
-                AttributeData::SecOffset(try!(read_offset(r, endian, std::usize::MAX)))
+                let val = try!(read_offset(r, buffer.endian, std::usize::MAX));
+                AttributeData::SecOffset(val)
             }
             constant::DW_FORM_exprloc => {
                 let len = try!(leb128::read_u64(r)) as usize;
@@ -334,7 +317,7 @@ impl<'a> AttributeData<'a> {
                 AttributeData::ExprLoc(val)
             }
             constant::DW_FORM_flag_present => AttributeData::Flag(true),
-            constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(endian.read_u64(r))),
+            constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(buffer.endian.read_u64(r))),
             _ => return Err(ReadError::Unsupported(format!("attribute form {}", form.0))),
         };
         Ok(data)

@@ -42,8 +42,9 @@ fn die() {
     let mut buf = Vec::new();
     write_val.write(&mut buf, endian, address_size, &mut debug_str, abbrev_hash.get(1).unwrap()).unwrap();
 
-    let mut r = &buf[..];
-    let read_val = Die::read(&mut r, write_val.offset, endian, address_size, &debug_str[..], &abbrev_hash).unwrap();
+    let buffer = DieBuffer::new(endian, address_size, &*debug_str, abbrev_hash, &*buf, 0);
+    let mut r = &*buf;
+    let read_val = Die::read(&mut r, write_val.offset, &buffer).unwrap();
 
     assert_eq!(&buf[..], [1, 0, 0, 0, 0]);
     assert_eq!(&debug_str[..], [b't', b'e', b's', b't', 0]);
@@ -66,9 +67,9 @@ fn attribute() {
     write_val.write(
         &mut buf, endian, address_size, &mut debug_str, &abbrev).unwrap();
 
-    let mut r = &buf[..];
-    let read_val = Attribute::read(
-        &mut r, endian, address_size, &debug_str[..], &abbrev).unwrap();
+    let buffer = DieBuffer::new(endian, address_size, &*debug_str, AbbrevHash::new(), &[], 0);
+    let mut r = &*buf;
+    let read_val = Attribute::read(&mut r, &buffer, &abbrev).unwrap();
 
     assert_eq!(&buf[..], [0x67, 0x45, 0x23, 0x01]);
     assert_eq!(r.len(), 0);
@@ -114,9 +115,9 @@ fn attribute_data() {
                 &mut buf, endian, address_size, &mut debug_str, form, indirect).unwrap();
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
-            let mut r = &buf[..];
-            let read_val = AttributeData::read(
-                &mut r, endian, address_size, &debug_str[..], read_form).unwrap();
+            let buffer = DieBuffer::new(endian, address_size, &*debug_str, AbbrevHash::new(), &[], 0);
+            let mut r = &*buf;
+            let read_val = AttributeData::read(&mut r, &buffer, read_form).unwrap();
 
             if indirect {
                 assert_eq!(buf[0] as u16, form.0);
