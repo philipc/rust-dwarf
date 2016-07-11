@@ -1,5 +1,7 @@
 use std;
+use std::borrow::Cow;
 use std::io::Read;
+use std::ops::Deref;
 use byteorder::{ReadBytesExt};
 
 use super::*;
@@ -125,9 +127,9 @@ impl<'a> DieBuffer<'a> {
         DieBuffer {
             endian: endian,
             address_size: address_size,
-            debug_str: debug_str,
+            debug_str: Cow::Borrowed(debug_str),
             abbrev: abbrev,
-            data: data,
+            data: Cow::Borrowed(data),
             offset: offset,
         }
     }
@@ -140,15 +142,15 @@ impl<'a> DieBuffer<'a> {
             endian: sections.endian,
             address_size: unit.address_size,
             // TODO: offset_size: u8,
-            debug_str: &*sections.debug_str,
+            debug_str: Cow::Borrowed(&*sections.debug_str),
             abbrev: abbrev,
-            data: unit.data,
+            data: Cow::Borrowed(unit.data),
             offset: unit.data_offset,
         })
     }
 
     pub fn entries(&'a self) -> DieCursor<'a> {
-        DieCursor::new(self.data, self.offset, self)
+        DieCursor::new(self.data.deref(), self.offset, self)
     }
 
     pub fn entry(&'a self, offset: usize) -> Option<DieCursor<'a>> {
