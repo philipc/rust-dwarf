@@ -29,6 +29,10 @@ impl<'a> Die<'a> {
         buffer: &mut DieBuffer<'a>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
+        if self.code == 0 {
+            try!(Die::write_null(buffer));
+            return Ok(());
+        }
         let abbrev = match abbrev_hash.get(self.code) {
             Some(abbrev) => abbrev,
             None => return Err(WriteError::Invalid(format!("missing abbrev {}", self.code))),
@@ -40,10 +44,6 @@ impl<'a> Die<'a> {
             return Err(WriteError::Invalid("die/abbrev attribute length mismatch".to_string()));
         }
         try!(leb128::write_u64(buffer.data.to_mut(), abbrev.code));
-        // This probably should never happen
-        if abbrev.code == 0 {
-            return Ok(());
-        }
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
             try!(attribute.write(buffer, abbrev_attribute));
         }

@@ -32,13 +32,13 @@ pub struct CompilationUnitIterator<'a> {
 
 #[derive(Debug)]
 pub struct CompilationUnit<'a> {
-    offset: usize,
-    version: u16,
-    address_size: u8,
+    pub offset: usize,
+    pub version: u16,
+    pub address_size: u8,
     // TODO: offset_size: u8,
-    abbrev_offset: usize,
-    data: &'a [u8],
-    data_offset: usize,
+    pub abbrev_offset: usize,
+    pub data: &'a [u8],
+    pub data_offset: usize,
 }
 
 #[derive(Debug)]

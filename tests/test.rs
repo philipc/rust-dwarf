@@ -19,6 +19,40 @@ fn read_and_display() {
 }
 
 #[test]
+fn die_buffer() {
+    let path = std::env::args_os().next().unwrap();
+    let sections = dwarf::elf::load(path).unwrap();
+    let mut units = sections.compilation_units();
+    while let Some(unit) = units.next().unwrap() {
+        let abbrev = unit.abbrev(&sections).unwrap();
+
+        let read_buffer = unit.die_buffer(&sections);
+        let mut entries = read_buffer.entries(&abbrev);
+        let mut write_buffer = DieBuffer::new(
+            sections.endian, unit.address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), unit.data_offset);
+        while let Some(entry) = entries.next().unwrap() {
+            entry.write(&mut write_buffer, &abbrev).unwrap();
+        }
+
+        let mut read_entries = read_buffer.entries(&abbrev);
+        let mut write_entries = write_buffer.entries(&abbrev);
+        loop {
+            let read_entry = read_entries.next().unwrap();
+            let write_entry = write_entries.next().unwrap();
+            assert_eq!(read_entry, write_entry);
+            if !read_entry.is_some() {
+                break;
+            }
+        }
+
+        assert_eq!(read_buffer.data().len(), write_buffer.data().len());
+        // TODO: debug_str isn't encoded the same (or even all in one buffer)
+        // assert_eq!(read_buffer.data(), write_buffer.data());
+        // assert_eq!(read_buffer.debug_str(), write_buffer.debug_str());
+    }
+}
+
+#[test]
 fn die() {
     let endian = Endian::Little;
     let address_size = 4;
