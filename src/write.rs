@@ -19,13 +19,13 @@ impl std::convert::From<std::io::Error> for WriteError {
 }
 
 impl<'a> Die<'a> {
-    pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
+    pub fn write_null(buffer: &mut DieBuffer<'a>) -> std::io::Result<()> {
+        let w = buffer.data.to_mut();
         leb128::write_u64(w, 0)
     }
 
-    pub fn write<W: Write>(
+    pub fn write(
         &self,
-        w: &mut W,
         buffer: &mut DieBuffer<'a>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
@@ -39,42 +39,41 @@ impl<'a> Die<'a> {
         if self.attributes.len() != abbrev.attributes.len() {
             return Err(WriteError::Invalid("die/abbrev attribute length mismatch".to_string()));
         }
-        try!(leb128::write_u64(w, abbrev.code));
+        try!(leb128::write_u64(buffer.data.to_mut(), abbrev.code));
         // This probably should never happen
         if abbrev.code == 0 {
             return Ok(());
         }
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
-            try!(attribute.write(w, buffer, abbrev_attribute));
+            try!(attribute.write(buffer, abbrev_attribute));
         }
         Ok(())
     }
 }
 
 impl<'a> Attribute<'a> {
-    pub fn write<W: Write>(
+    pub fn write(
         &self,
-        w: &mut W,
         buffer: &mut DieBuffer<'a>,
         abbrev: &AbbrevAttribute,
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
             return Err(WriteError::Invalid("attribute type mismatch".to_string()));
         }
-        try!(self.data.write(w, buffer, abbrev.form, false));
+        try!(self.data.write(buffer, abbrev.form, false));
         Ok(())
     }
 }
 
 #[cfg_attr(feature = "clippy", allow(match_same_arms))]
 impl<'a> AttributeData<'a> {
-    pub fn write<W: Write>(
+    pub fn write(
         &self,
-        w: &mut W,
         buffer: &mut DieBuffer<'a>,
         form: constant::DwForm,
         indirect: bool,
     ) -> Result<(), WriteError> {
+        let w = buffer.data.to_mut();
         if indirect {
             try!(leb128::write_u16(w, form.0));
         }

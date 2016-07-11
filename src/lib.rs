@@ -114,6 +114,32 @@ pub struct AbbrevAttribute {
     pub form: constant::DwForm,
 }
 
+impl<'a> DieBuffer<'a> {
+    pub fn new(
+        endian: Endian,
+        address_size: u8,
+        debug_str: Cow<'a, [u8]>,
+        data: Cow<'a, [u8]>,
+        offset: usize,
+    ) -> DieBuffer<'a> {
+        DieBuffer {
+            endian: endian,
+            address_size: address_size,
+            debug_str: debug_str,
+            data: data,
+            offset: offset,
+        }
+    }
+
+    pub fn data(&'a self) -> &'a [u8] {
+        &*self.data
+    }
+
+    pub fn debug_str(&'a self) -> &'a [u8] {
+        &*self.debug_str
+    }
+}
+
 impl<'a> Die<'a> {
     pub fn null(offset: usize) -> Self {
         Die {

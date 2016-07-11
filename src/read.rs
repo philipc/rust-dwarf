@@ -127,22 +127,6 @@ impl<'a> CompilationUnit<'a> {
 }
 
 impl<'a> DieBuffer<'a> {
-    pub fn new(
-        endian: Endian,
-        address_size: u8,
-        debug_str: Cow<'a, [u8]>,
-        data: Cow<'a, [u8]>,
-        offset: usize,
-    ) -> DieBuffer<'a> {
-        DieBuffer {
-            endian: endian,
-            address_size: address_size,
-            debug_str: debug_str,
-            data: data,
-            offset: offset,
-        }
-    }
-
     pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a> {
         DieCursor::new(self.data.deref(), self.offset, self, abbrev)
     }
@@ -156,10 +140,6 @@ impl<'a> DieBuffer<'a> {
             return None;
         }
         Some(DieCursor::new(&self.data[relative_offset..], offset, self, abbrev))
-    }
-
-    pub fn debug_str(&'a self) -> &'a [u8] {
-        &*self.debug_str
     }
 }
 

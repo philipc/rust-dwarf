@@ -43,13 +43,12 @@ fn die() {
     };
 
     let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
-    let mut buf = Vec::new();
-    write_val.write(&mut buf, &mut buffer, &abbrev_hash).unwrap();
+    write_val.write(&mut buffer, &abbrev_hash).unwrap();
 
-    let mut r = &*buf;
+    let mut r = buffer.data();
     let read_val = Die::read(&mut r, write_val.offset, &buffer, &abbrev_hash).unwrap();
 
-    assert_eq!(&buf[..], [1, 0, 0, 0, 0]);
+    assert_eq!(buffer.data(), [1, 0, 0, 0, 0]);
     assert_eq!(buffer.debug_str(), [b't', b'e', b's', b't', 0]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
@@ -66,13 +65,12 @@ fn attribute() {
     };
 
     let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
-    let mut buf = Vec::new();
-    write_val.write(&mut buf, &mut buffer, &abbrev).unwrap();
+    write_val.write(&mut buffer, &abbrev).unwrap();
 
-    let mut r = &*buf;
+    let mut r = buffer.data();
     let read_val = Attribute::read(&mut r, &buffer, &abbrev).unwrap();
 
-    assert_eq!(&buf[..], [0x67, 0x45, 0x23, 0x01]);
+    assert_eq!(buffer.data(), [0x67, 0x45, 0x23, 0x01]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
 }
@@ -111,11 +109,11 @@ fn attribute_data() {
     ] {
         for &indirect in &[false, true] {
             let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
-            let mut buf = Vec::new();
-            write_val.write(&mut buf, &mut buffer, form, indirect).unwrap();
+            write_val.write(&mut buffer, form, indirect).unwrap();
+            let buf = buffer.data();
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
-            let mut r = &*buf;
+            let mut r = buf;
             let read_val = AttributeData::read(&mut r, &buffer, read_form).unwrap();
 
             if indirect {
