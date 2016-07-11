@@ -66,6 +66,7 @@ impl<'a> Attribute<'a> {
     }
 }
 
+#[cfg_attr(feature = "clippy", allow(match_same_arms))]
 impl<'a> AttributeData<'a> {
     pub fn write<W: Write>(
         &self,

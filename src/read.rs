@@ -42,6 +42,7 @@ impl Sections {
     }
 }
 
+#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a> CompilationUnitIterator<'a> {
     fn new(sections: &'a Sections) -> Self {
         CompilationUnitIterator {
@@ -162,6 +163,7 @@ impl<'a> DieBuffer<'a> {
     }
 }
 
+#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a> DieCursor<'a> {
     pub fn new(r: &'a [u8], offset: usize, buffer: &'a DieBuffer<'a>, abbrev: &'a AbbrevHash) -> Self {
         DieCursor {

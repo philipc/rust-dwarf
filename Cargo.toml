@@ -10,3 +10,6 @@ license = "MIT/Apache-2.0"
 [dependencies]
 byteorder = "0.5.3"
 elf = "0.0.9"
+
+[features]
+clippy = []

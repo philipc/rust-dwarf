@@ -94,7 +94,7 @@ pub enum AttributeData<'a> {
     ExprLoc(&'a [u8]),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AbbrevHash(std::collections::HashMap<u64, Abbrev>);
 
 #[derive(Debug)]
@@ -139,6 +139,10 @@ impl AbbrevHash {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn iter(&self) -> std::collections::hash_map::Iter<u64, Abbrev> {
         self.0.iter()
     }
@@ -161,7 +165,11 @@ impl AbbrevVec {
         self.0.len()
     }
 
-    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Abbrev> {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Abbrev> {
         self.0.iter()
     }
 }
