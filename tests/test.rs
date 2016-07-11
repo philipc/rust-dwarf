@@ -11,7 +11,8 @@ fn read_and_display() {
     let mut buf = Vec::new();
     let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     while let Some(unit) = units.next().unwrap() {
-        unit.display(&mut f).unwrap();
+        let mut entries = unit.entries(&sections).unwrap();
+        entries.display(&mut f).unwrap();
     }
 }
 

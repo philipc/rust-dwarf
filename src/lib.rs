@@ -30,20 +30,23 @@ pub struct CompilationUnitIterator<'a> {
 
 #[derive(Debug)]
 pub struct CompilationUnit<'a> {
-    sections: &'a Sections,
     offset: usize,
     version: u16,
     address_size: u8,
     // TODO: offset_size: u8,
-    abbrev: AbbrevHash,
+    abbrev_offset: usize,
     data: &'a [u8],
+    data_offset: usize,
 }
 
 #[derive(Debug)]
 pub struct DieCursor<'a> {
-    unit: &'a CompilationUnit<'a>,
-    data: &'a [u8],
+    r: &'a [u8],
     offset: usize,
+    endian: Endian,
+    address_size: u8,
+    debug_str: &'a [u8],
+    abbrev: AbbrevHash,
     next_child: bool,
 }
 

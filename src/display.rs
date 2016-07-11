@@ -51,20 +51,6 @@ impl<'a> Formatter for DefaultFormatter<'a> {
     }
 }
 
-impl<'a> CompilationUnit<'a> {
-    pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), ReadError> {
-        let mut entries = try!(self.entries());
-        try!(entries.display(f));
-        Ok(())
-    }
-
-    pub fn display_depth<F: Formatter>(&self, f: &mut F, depth: usize) -> Result<(), ReadError> {
-        let mut entries = try!(self.entries());
-        try!(entries.display_depth(f, depth));
-        Ok(())
-    }
-}
-
 impl<'a> DieCursor<'a> {
     pub fn display<F: Formatter>(&mut self, f: &mut F) -> Result<(), ReadError> {
         while let Some(die) = try!(self.next()) {
