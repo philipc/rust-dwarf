@@ -21,8 +21,9 @@ fn die() {
     let endian = Endian::Little;
     let address_size = 4;
     let mut abbrev_hash = AbbrevHash::new();
+    let code = 1;
     abbrev_hash.insert(Abbrev {
-        code: 1,
+        code: code,
         tag: DW_TAG_namespace,
         children: true,
         attributes: vec![
@@ -31,6 +32,7 @@ fn die() {
     });
     let write_val = Die {
         offset: 0,
+        code: code,
         tag: DW_TAG_namespace,
         children: true,
         attributes: vec![
@@ -40,7 +42,7 @@ fn die() {
 
     let mut debug_str = Vec::new();
     let mut buf = Vec::new();
-    write_val.write(&mut buf, endian, address_size, &mut debug_str, abbrev_hash.get(1).unwrap()).unwrap();
+    write_val.write(&mut buf, endian, address_size, &mut debug_str, &abbrev_hash).unwrap();
 
     let buffer = DieBuffer::new(endian, address_size, &*debug_str, abbrev_hash, &*buf, 0);
     let mut r = &*buf;

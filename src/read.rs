@@ -227,6 +227,7 @@ impl<'a> Die<'a> {
 
         Ok(Die {
             offset: offset,
+            code: code,
             tag: abbrev.tag,
             children: abbrev.children,
             attributes: attributes,

@@ -61,6 +61,7 @@ pub struct DieCursor<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Die<'a> {
     pub offset: usize,
+    pub code: u64,
     pub tag: constant::DwTag,
     pub children: bool,
     pub attributes: Vec<Attribute<'a>>,
@@ -115,6 +116,7 @@ impl<'a> Die<'a> {
     pub fn null(offset: usize) -> Self {
         Die {
             offset: offset,
+            code: 0,
             tag: constant::DW_TAG_null,
             children: false,
             attributes: Vec::new(),

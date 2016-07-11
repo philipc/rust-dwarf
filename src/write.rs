@@ -29,8 +29,12 @@ impl<'a> Die<'a> {
         endian: Endian,
         address_size: u8,
         debug_str: &mut Vec<u8>,
-        abbrev: &Abbrev,
+        abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
+        let abbrev = match abbrev_hash.get(self.code) {
+            Some(abbrev) => abbrev,
+            None => return Err(WriteError::Invalid(format!("missing abbrev {}", self.code))),
+        };
         if self.children != abbrev.children {
             return Err(WriteError::Invalid("die/abbrev children mismatch".to_string()));
         }
