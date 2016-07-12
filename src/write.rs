@@ -42,15 +42,15 @@ impl<'a> CompilationUnit<'a> {
     }
 }
 
-impl<'a> Die<'a> {
-    pub fn write_null(unit: &mut CompilationUnit<'a>) -> std::io::Result<()> {
+impl<'a, 'b> Die<'a> {
+    pub fn write_null(unit: &mut CompilationUnit<'b>) -> std::io::Result<()> {
         let w = unit.data.to_mut();
         leb128::write_u64(w, 0)
     }
 
     pub fn write(
         &self,
-        unit: &mut CompilationUnit<'a>,
+        unit: &mut CompilationUnit<'b>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
         if self.code == 0 {
@@ -75,10 +75,10 @@ impl<'a> Die<'a> {
     }
 }
 
-impl<'a> Attribute<'a> {
+impl<'a, 'b> Attribute<'a> {
     pub fn write(
         &self,
-        unit: &mut CompilationUnit<'a>,
+        unit: &mut CompilationUnit<'b>,
         abbrev: &AbbrevAttribute,
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
@@ -90,10 +90,10 @@ impl<'a> Attribute<'a> {
 }
 
 #[cfg_attr(feature = "clippy", allow(match_same_arms))]
-impl<'a> AttributeData<'a> {
+impl<'a, 'b> AttributeData<'a> {
     pub fn write(
         &self,
-        unit: &mut CompilationUnit<'a>,
+        unit: &mut CompilationUnit<'b>,
         form: constant::DwForm,
         indirect: bool,
     ) -> Result<(), WriteError> {

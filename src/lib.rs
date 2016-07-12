@@ -44,11 +44,10 @@ pub struct CompilationUnit<'a> {
 }
 
 #[derive(Debug)]
-// TODO: use multiple lifetimes
-pub struct DieCursor<'a> {
-    r: &'a [u8],
+pub struct DieCursor<'a, 'b: 'a, 'c: 'a> {
+    r: &'c [u8],
     offset: usize,
-    unit: &'a CompilationUnit<'a>,
+    unit: &'a CompilationUnit<'b>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
 }

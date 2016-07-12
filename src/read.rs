@@ -123,11 +123,11 @@ impl<'a> CompilationUnit<'a> {
         AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
 
-    pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a> {
+    pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'a, 'a> {
         DieCursor::new(self.data.deref(), self.data_offset(), self, abbrev)
     }
 
-    pub fn entry(&'a self, offset: usize, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a>> {
+    pub fn entry(&'a self, offset: usize, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a, 'a, 'a>> {
         let data_offset = self.data_offset();
         if offset < data_offset {
             return None;
@@ -141,8 +141,8 @@ impl<'a> CompilationUnit<'a> {
 }
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-impl<'a> DieCursor<'a> {
-    pub fn new(r: &'a [u8], offset: usize, unit: &'a CompilationUnit<'a>, abbrev: &'a AbbrevHash) -> Self {
+impl<'a, 'b, 'c> DieCursor<'a, 'b, 'c> {
+    pub fn new(r: &'c [u8], offset: usize, unit: &'a CompilationUnit<'b>, abbrev: &'a AbbrevHash) -> Self {
         DieCursor {
             r: r,
             offset: offset,
@@ -156,7 +156,7 @@ impl<'a> DieCursor<'a> {
         self.offset
     }
 
-    pub fn next(&mut self) -> Result<Option<Die<'a>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<Die<'c>>, ReadError> {
         if self.r.len() == 0 {
             return Ok(None);
         }
@@ -169,7 +169,7 @@ impl<'a> DieCursor<'a> {
         Ok(Some(die))
     }
 
-    pub fn next_sibling(&mut self) -> Result<Option<Die<'a>>, ReadError> {
+    pub fn next_sibling(&mut self) -> Result<Option<Die<'c>>, ReadError> {
         if self.next_child {
             self.next_child = false;
             loop {
@@ -183,12 +183,12 @@ impl<'a> DieCursor<'a> {
     }
 }
 
-impl<'a> Die<'a> {
+impl<'a, 'b> Die<'a> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        unit: &'a CompilationUnit<'a>,
-        abbrev_hash: &'a AbbrevHash,
+        unit: &CompilationUnit<'b>,
+        abbrev_hash: &AbbrevHash,
     ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
@@ -215,10 +215,10 @@ impl<'a> Die<'a> {
     }
 }
 
-impl<'a> Attribute<'a> {
+impl<'a, 'b> Attribute<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        unit: &'a CompilationUnit<'a>,
+        unit: &CompilationUnit<'b>,
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
         let data = try!(AttributeData::read(r, unit, abbrev.form));
@@ -229,10 +229,10 @@ impl<'a> Attribute<'a> {
     }
 }
 
-impl<'a> AttributeData<'a> {
+impl<'a, 'b> AttributeData<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        unit: &'a CompilationUnit<'a>,
+        unit: &CompilationUnit<'b>,
         form: constant::DwForm,
     ) -> Result<AttributeData<'a>, ReadError> {
         let data = match form {

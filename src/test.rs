@@ -119,6 +119,13 @@ fn attribute() {
 
 #[test]
 fn attribute_data() {
+    let mut unit = CompilationUnit {
+        endian: Endian::Little,
+        ..Default::default()
+    };
+
+    unit.address_size = 4;
+    unit.offset_size = 4;
     for &(ref write_val, form, expect) in &[
         (AttributeData::Address(0x12345678), DW_FORM_addr, &[0x78, 0x56, 0x34, 0x12][..]),
         (AttributeData::Block(&[0x11, 0x22, 0x33]), DW_FORM_block1, &[0x3, 0x11, 0x22, 0x33][..]),
@@ -147,29 +154,20 @@ fn attribute_data() {
         (AttributeData::SecOffset(0x12345678), DW_FORM_sec_offset, &[0x78, 0x56, 0x34, 0x12][..]),
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
-        // TODO: lifetimes here are wrong
-        let mut unit = CompilationUnit {
-            endian: Endian::Little,
-            address_size: 4,
-            offset_size: 4,
-            ..Default::default()
-        };
         attribute_data_inner(&mut unit, write_val, form, expect);
     }
 
+    unit.address_size = 8;
+    unit.offset_size = 4;
     for &(ref write_val, form, expect) in &[
         (AttributeData::Address(0x0123456789), DW_FORM_addr,
             &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
     ] {
-        let mut unit = CompilationUnit {
-            endian: Endian::Little,
-            address_size: 8,
-            offset_size: 4,
-            ..Default::default()
-        };
         attribute_data_inner(&mut unit, write_val, form, expect);
     }
 
+    unit.address_size = 4;
+    unit.offset_size = 8;
     for &(ref write_val, form, expect) in &[
         (AttributeData::StringOffset(0x0123456789), DW_FORM_strp,
             &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
@@ -178,17 +176,11 @@ fn attribute_data() {
         (AttributeData::SecOffset(0x0123456789), DW_FORM_sec_offset,
             &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
     ] {
-        let mut unit = CompilationUnit {
-            endian: Endian::Little,
-            address_size: 4,
-            offset_size: 8,
-            ..Default::default()
-        };
         attribute_data_inner(&mut unit, write_val, form, expect);
     }
 }
 
-fn attribute_data_inner<'a>(unit: &mut CompilationUnit<'a>, write_val: &AttributeData<'a>, form: DwForm, expect: &[u8]) {
+fn attribute_data_inner<'a, 'b>(unit: &mut CompilationUnit<'a>, write_val: &AttributeData<'b>, form: DwForm, expect: &[u8]) {
     for &indirect in &[false, true] {
         unit.data = Default::default();
         write_val.write(unit, form, indirect).unwrap();
