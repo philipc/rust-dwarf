@@ -78,9 +78,12 @@ impl<'a> CompilationUnit<'a> {
         offset: usize,
         endian: Endian,
     ) -> Result<CompilationUnit<'a>, ReadError> {
-        let len = try!(endian.read_u32(r)) as usize;
-        // TODO: 64 bit
-        if len >= 0xfffffff0 {
+        let mut offset_size = 4;
+        let mut len = try!(endian.read_u32(r)) as usize;
+        if len == 0xffffffff {
+            offset_size = 8;
+            len = try!(endian.read_u64(r)) as usize;
+        } else if len >= 0xfffffff0 {
             return Err(ReadError::Unsupported(format!("compilation unit length {}", len)));
         }
         if len > r.len() {
@@ -97,7 +100,7 @@ impl<'a> CompilationUnit<'a> {
             return Err(ReadError::Unsupported(format!("compilation unit version {}", version)));
         }
 
-        let abbrev_offset = try!(read_offset(&mut data, endian));
+        let abbrev_offset = try!(read_offset(&mut data, endian, offset_size));
         let address_size = try!(data.read_u8());
 
         Ok(CompilationUnit {
@@ -105,13 +108,14 @@ impl<'a> CompilationUnit<'a> {
             endian: endian,
             version: version,
             address_size: address_size,
+            offset_size: offset_size,
             abbrev_offset: abbrev_offset,
             data: From::from(data),
         })
     }
 
     pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
-        let offset = self.abbrev_offset;
+        let offset = self.abbrev_offset as usize;
         let len = debug_abbrev.len();
         if offset >= len {
             return Err(ReadError::Invalid(format!("abbrev offset {} > {}", offset, len)));
@@ -264,26 +268,26 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
             constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
             constant::DW_FORM_strp => {
-                let val = try!(read_offset(r, unit.endian));
+                let val = try!(read_offset(r, unit.endian, unit.offset_size));
                 AttributeData::StringOffset(val)
             }
             constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
             constant::DW_FORM_ref_addr => {
-                let val = try!(read_address(r, unit.endian, unit.address_size));
+                let val = try!(read_offset(r, unit.endian, unit.offset_size));
                 AttributeData::RefAddress(val)
             }
-            constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as usize),
-            constant::DW_FORM_ref2 => AttributeData::Ref(try!(unit.endian.read_u16(r)) as usize),
-            constant::DW_FORM_ref4 => AttributeData::Ref(try!(unit.endian.read_u32(r)) as usize),
-            constant::DW_FORM_ref8 => AttributeData::Ref(try!(unit.endian.read_u64(r)) as usize),
-            constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r)) as usize),
+            constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as u64),
+            constant::DW_FORM_ref2 => AttributeData::Ref(try!(unit.endian.read_u16(r)) as u64),
+            constant::DW_FORM_ref4 => AttributeData::Ref(try!(unit.endian.read_u32(r)) as u64),
+            constant::DW_FORM_ref8 => AttributeData::Ref(try!(unit.endian.read_u64(r)) as u64),
+            constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r))),
             constant::DW_FORM_indirect => {
                 let val = try!(leb128::read_u16(r));
                 try!(AttributeData::read(r, unit, constant::DwForm(val)))
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
-                let val = try!(read_offset(r, unit.endian));
+                let val = try!(read_offset(r, unit.endian, unit.offset_size));
                 AttributeData::SecOffset(val)
             }
             constant::DW_FORM_exprloc => {
@@ -297,12 +301,6 @@ impl<'a> AttributeData<'a> {
         };
         Ok(data)
     }
-}
-
-fn read_offset<R: Read>(r: &mut R, endian: Endian) -> Result<usize, ReadError> {
-    // TODO: 64 bit
-    let offset = try!(endian.read_u32(r)) as usize;
-    Ok(offset)
 }
 
 fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
@@ -321,6 +319,15 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
     };
     let val = try!(std::str::from_utf8(&r[..len]));
     *r = &r[len + 1..];
+    Ok(val)
+}
+
+fn read_offset<R: Read>(r: &mut R, endian: Endian, offset_size: u8) -> Result<u64, ReadError> {
+    let val = match offset_size {
+        4 => try!(endian.read_u32(r)) as u64,
+        8 => try!(endian.read_u64(r)),
+        _ => return Err(ReadError::Unsupported(format!("offset size {}", offset_size))),
+    };
     Ok(val)
 }
 

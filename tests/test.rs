@@ -29,6 +29,7 @@ fn read_and_write() {
             endian: read_unit.endian,
             version: read_unit.version,
             address_size: read_unit.address_size,
+            offset_size: read_unit.offset_size,
             abbrev_offset: read_unit.abbrev_offset,
             data: Default::default(),
         };

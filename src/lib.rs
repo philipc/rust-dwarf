@@ -38,8 +38,8 @@ pub struct CompilationUnit<'a> {
     pub endian: Endian,
     pub version: u16,
     pub address_size: u8,
-    // TODO: offset_size: u8,
-    pub abbrev_offset: usize,
+    pub offset_size: u8,
+    pub abbrev_offset: u64,
     pub data: Cow<'a, [u8]>,
 }
 
@@ -80,11 +80,11 @@ pub enum AttributeData<'a> {
     SData(i64),
     Flag(bool),
     String(&'a str),
-    StringOffset(usize),
-    Ref(usize),
+    StringOffset(u64),
+    Ref(u64),
     RefAddress(u64),
     RefSig(u64),
-    SecOffset(usize),
+    SecOffset(u64),
     ExprLoc(&'a [u8]),
 }
 
@@ -115,6 +115,7 @@ impl<'a> Default for CompilationUnit<'a> {
             endian: Endian::default(),
             version: 4,
             address_size: 4,
+            offset_size: 4,
             abbrev_offset: 0,
             data: Cow::Owned(Vec::new()),
         }
@@ -122,13 +123,19 @@ impl<'a> Default for CompilationUnit<'a> {
 }
 
 impl<'a> CompilationUnit<'a> {
-    pub fn header_len(&self) -> usize {
-        // len (TODO: 64 bit) + version + abbrev_offset + address_size + data
-        4 + 2 + 4 + 1
+    fn base_header_len(&self) -> usize {
+        // version + abbrev_offset + address_size
+        2 + self.offset_size as usize + 1
     }
 
-    pub fn len(&self) -> usize {
-        self.header_len() + self.data.len()
+    fn total_header_len(&self) -> usize {
+        // len + version + abbrev_offset + address_size
+        // Includes an extra 4 bytes if offset_size is 8
+        (self.offset_size as usize * 2 - 4) + self.base_header_len()
+    }
+
+    fn base_len(&self) -> usize {
+        self.base_header_len() + self.data.len()
     }
 
     pub fn data(&'a self) -> &'a [u8] {
@@ -136,7 +143,7 @@ impl<'a> CompilationUnit<'a> {
     }
 
     pub fn data_offset(&self) -> usize {
-        self.offset + self.header_len()
+        self.offset + self.total_header_len()
     }
 }
 

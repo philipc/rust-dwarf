@@ -20,15 +20,22 @@ impl std::convert::From<std::io::Error> for WriteError {
 
 impl<'a> CompilationUnit<'a> {
     pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
-        // version + abbrev_offset + address_size + data
-        let len = 2 + 4 + 1 + self.data.len();
-        // TODO: 64 bit
-        if len >= 0xfffffff0 {
-            return Err(WriteError::Invalid(format!("compilation unit length {}", len)));
-        }
-        try!(self.endian.write_u32(w, len as u32));
+        let len = self.base_len();
+        match self.offset_size {
+            4 => {
+                if len >= 0xfffffff0 {
+                    return Err(WriteError::Invalid(format!("compilation unit length {}", len)));
+                }
+                try!(self.endian.write_u32(w, len as u32));
+            }
+            8 => {
+                try!(self.endian.write_u32(w, 0xffffffff));
+                try!(self.endian.write_u64(w, len as u64));
+            }
+            _ => return Err(WriteError::Unsupported(format!("offset size {}", self.offset_size))),
+        };
         try!(self.endian.write_u16(w, self.version));
-        try!(write_offset(w, self.endian, self.abbrev_offset));
+        try!(write_offset(w, self.endian, self.offset_size, self.abbrev_offset));
         try!(w.write_u8(self.address_size));
         try!(w.write_all(&*self.data));
         Ok(())
@@ -143,7 +150,7 @@ impl<'a> AttributeData<'a> {
                 try!(w.write_u8(0));
             },
             (&AttributeData::StringOffset(ref val), constant::DW_FORM_strp) => {
-                try!(write_offset(w, unit.endian, *val));
+                try!(write_offset(w, unit.endian, unit.offset_size, *val));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref1) => {
                 try!(w.write_u8(*val as u8));
@@ -161,13 +168,13 @@ impl<'a> AttributeData<'a> {
                 try!(leb128::write_u64(w, *val as u64));
             },
             (&AttributeData::RefAddress(ref val), constant::DW_FORM_ref_addr) => {
-                try!(write_address(w, unit.endian, unit.address_size, *val));
+                try!(write_offset(w, unit.endian, unit.offset_size, *val));
             },
             (&AttributeData::RefSig(ref val), constant::DW_FORM_ref_sig8) => {
                 try!(unit.endian.write_u64(w, *val));
             },
             (&AttributeData::SecOffset(ref val), constant::DW_FORM_sec_offset) => {
-                try!(write_offset(w, unit.endian, *val));
+                try!(write_offset(w, unit.endian, unit.offset_size, *val));
             },
             (&AttributeData::ExprLoc(ref val), constant::DW_FORM_exprloc) => {
                 try!(leb128::write_u64(w, val.len() as u64));
@@ -179,9 +186,12 @@ impl<'a> AttributeData<'a> {
     }
 }
 
-fn write_offset<W: Write>(w: &mut W, endian: Endian, val: usize) -> Result<(), WriteError> {
-    // TODO: 64 bit
-    try!(endian.write_u32(w, val as u32));
+fn write_offset<W: Write>(w: &mut W, endian: Endian, offset_size: u8, val: u64) -> Result<(), WriteError> {
+    match offset_size {
+        4 => try!(endian.write_u32(w, val as u32)),
+        8 => try!(endian.write_u64(w, val)),
+        _ => return Err(WriteError::Unsupported(format!("offset size {}", offset_size))),
+    };
     Ok(())
 }
 

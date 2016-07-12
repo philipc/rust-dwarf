@@ -2,7 +2,7 @@ use super::*;
 use constant::*;
 
 #[test]
-fn compilation_unit() {
+fn compilation_unit_32() {
     let offset = 0;
     let endian = Endian::Little;
     let data = [0x01, 0x23, 0x45, 0x67];
@@ -11,6 +11,7 @@ fn compilation_unit() {
         endian: endian,
         version: 4,
         address_size: 4,
+        offset_size: 4,
         abbrev_offset: 0x12,
         data: From::from(&data[..]),
     };
@@ -29,7 +30,39 @@ fn compilation_unit() {
         0x01, 0x23, 0x45, 0x67
     ]);
     assert_eq!(r.len(), 0);
-    assert_eq!(read_val.len(), write_val.len());
+    assert_eq!(read_val, write_val);
+}
+
+#[test]
+fn compilation_unit_64() {
+    let offset = 0;
+    let endian = Endian::Little;
+    let data = [0x01, 0x23, 0x45, 0x67];
+    let write_val = CompilationUnit {
+        offset: offset,
+        endian: endian,
+        version: 4,
+        address_size: 4,
+        offset_size: 8,
+        abbrev_offset: 0x12,
+        data: From::from(&data[..]),
+    };
+
+    let mut buf = Vec::new();
+    write_val.write(&mut buf).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = CompilationUnit::read(&mut r, offset, endian).unwrap();
+
+    assert_eq!(&buf[..], [
+        0xff, 0xff, 0xff, 0xff, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x00,
+        0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04,
+        0x01, 0x23, 0x45, 0x67
+    ]);
+    assert_eq!(r.len(), 0);
+    assert_eq!(read_val, write_val);
 }
 
 #[test]
@@ -114,24 +147,65 @@ fn attribute_data() {
         (AttributeData::SecOffset(0x12345678), DW_FORM_sec_offset, &[0x78, 0x56, 0x34, 0x12][..]),
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
-        for &indirect in &[false, true] {
-            let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
-            write_val.write(&mut unit, form, indirect).unwrap();
-            let buf = unit.data();
+        // TODO: lifetimes here are wrong
+        let mut unit = CompilationUnit {
+            endian: Endian::Little,
+            address_size: 4,
+            offset_size: 4,
+            ..Default::default()
+        };
+        attribute_data_inner(&mut unit, write_val, form, expect);
+    }
 
-            let read_form = if indirect { DW_FORM_indirect } else { form };
-            let mut r = buf;
-            let read_val = AttributeData::read(&mut r, &unit, read_form).unwrap();
+    for &(ref write_val, form, expect) in &[
+        (AttributeData::Address(0x0123456789), DW_FORM_addr,
+            &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
+    ] {
+        let mut unit = CompilationUnit {
+            endian: Endian::Little,
+            address_size: 8,
+            offset_size: 4,
+            ..Default::default()
+        };
+        attribute_data_inner(&mut unit, write_val, form, expect);
+    }
 
-            if indirect {
-                assert_eq!(buf[0] as u16, form.0);
-                assert_eq!(&buf[1..], expect);
-            } else {
-                assert_eq!(&buf[..], expect);
-            }
-            assert_eq!(r.len(), 0);
-            assert_eq!(read_val, *write_val);
+    for &(ref write_val, form, expect) in &[
+        (AttributeData::StringOffset(0x0123456789), DW_FORM_strp,
+            &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
+        (AttributeData::RefAddress(0x0123456789), DW_FORM_ref_addr,
+            &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
+        (AttributeData::SecOffset(0x0123456789), DW_FORM_sec_offset,
+            &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
+    ] {
+        let mut unit = CompilationUnit {
+            endian: Endian::Little,
+            address_size: 4,
+            offset_size: 8,
+            ..Default::default()
+        };
+        attribute_data_inner(&mut unit, write_val, form, expect);
+    }
+}
+
+fn attribute_data_inner<'a>(unit: &mut CompilationUnit<'a>, write_val: &AttributeData<'a>, form: DwForm, expect: &[u8]) {
+    for &indirect in &[false, true] {
+        unit.data = Default::default();
+        write_val.write(unit, form, indirect).unwrap();
+        let buf = unit.data();
+
+        let read_form = if indirect { DW_FORM_indirect } else { form };
+        let mut r = buf;
+        let read_val = AttributeData::read(&mut r, unit, read_form).unwrap();
+
+        if indirect {
+            assert_eq!(buf[0] as u16, form.0);
+            assert_eq!(&buf[1..], expect);
+        } else {
+            assert_eq!(&buf[..], expect);
         }
+        assert_eq!(r.len(), 0);
+        assert_eq!(read_val, *write_val);
     }
 }
 
