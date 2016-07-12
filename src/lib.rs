@@ -6,6 +6,8 @@ mod endian;
 mod leb128;
 mod read;
 mod write;
+#[cfg(test)]
+mod test;
 
 pub mod constant;
 pub mod display;
