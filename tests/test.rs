@@ -29,7 +29,7 @@ fn die_buffer() {
         let read_buffer = unit.die_buffer(&sections);
         let mut entries = read_buffer.entries(&abbrev);
         let mut write_buffer = DieBuffer::new(
-            sections.endian, unit.address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), unit.data_offset);
+            sections.endian, unit.address_size, Cow::Borrowed(&[]), unit.data_offset);
         while let Some(entry) = entries.next().unwrap() {
             entry.write(&mut write_buffer, &abbrev).unwrap();
         }
@@ -45,10 +45,7 @@ fn die_buffer() {
             }
         }
 
-        assert_eq!(read_buffer.data().len(), write_buffer.data().len());
-        // TODO: debug_str isn't encoded the same (or even all in one buffer)
-        // assert_eq!(read_buffer.data(), write_buffer.data());
-        // assert_eq!(read_buffer.debug_str(), write_buffer.debug_str());
+        assert_eq!(read_buffer.data(), write_buffer.data());
     }
 }
 
@@ -63,7 +60,7 @@ fn die() {
         tag: DW_TAG_namespace,
         children: true,
         attributes: vec![
-            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_strp },
+            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_string },
         ],
     });
     let write_val = Die {
@@ -76,14 +73,13 @@ fn die() {
         ],
     };
 
-    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
+    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
     write_val.write(&mut buffer, &abbrev_hash).unwrap();
 
     let mut r = buffer.data();
     let read_val = Die::read(&mut r, write_val.offset, &buffer, &abbrev_hash).unwrap();
 
-    assert_eq!(buffer.data(), [1, 0, 0, 0, 0]);
-    assert_eq!(buffer.debug_str(), [b't', b'e', b's', b't', 0]);
+    assert_eq!(buffer.data(), [1, b't', b'e', b's', b't', 0]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
 }
@@ -98,7 +94,7 @@ fn attribute() {
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
+    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
     write_val.write(&mut buffer, &abbrev).unwrap();
 
     let mut r = buffer.data();
@@ -130,7 +126,7 @@ fn attribute_data() {
         (AttributeData::Flag(true), DW_FORM_flag, &[1][..]),
         (AttributeData::Flag(true), DW_FORM_flag_present, &[][..]),
         (AttributeData::String("test"), DW_FORM_string, &[b't', b'e', b's', b't', 0][..]),
-        (AttributeData::String("test"), DW_FORM_strp, &[0; 4][..]),
+        (AttributeData::StringOffset(0x01234567), DW_FORM_strp, &[0x67, 0x45, 0x23, 0x01][..]),
         (AttributeData::Ref(0x01), DW_FORM_ref1, &[0x01][..]),
         (AttributeData::Ref(0x0123), DW_FORM_ref2, &[0x23, 0x01][..]),
         (AttributeData::Ref(0x01234567), DW_FORM_ref4, &[0x67, 0x45, 0x23, 0x01][..]),
@@ -142,7 +138,7 @@ fn attribute_data() {
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
         for &indirect in &[false, true] {
-            let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), Cow::Borrowed(&[]), 0);
+            let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
             write_val.write(&mut buffer, form, indirect).unwrap();
             let buf = buffer.data();
 
@@ -158,11 +154,6 @@ fn attribute_data() {
             }
             assert_eq!(r.len(), 0);
             assert_eq!(read_val, *write_val);
-            if form == DW_FORM_strp {
-                assert_eq!(buffer.debug_str(), [b't', b'e', b's', b't', 0]);
-            } else {
-                assert_eq!(buffer.debug_str().len(), 0);
-            }
         }
     }
 }

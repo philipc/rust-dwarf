@@ -86,16 +86,17 @@ impl<'a> CompilationUnit<'a> {
             return Err(ReadError::Invalid(format!("compilation unit length {}", len)));
         }
 
-        // Tell the caller we read the entire length, even if we don't read it all now
+        // Tell the caller we read the entire length, even if we don't parse it all now
         let mut data = &r[..len];
         *r = &r[len..];
 
         let version = try!(sections.endian.read_u16(&mut data));
-        if version < 2 || version > 4 { // TODO: is this correct?
+        // TODO: is this correct?
+        if version < 2 || version > 4 {
             return Err(ReadError::Unsupported(format!("compilation unit version {}", version)));
         }
 
-        let abbrev_offset = try!(read_offset(&mut data, sections.endian, sections.debug_abbrev.len()));
+        let abbrev_offset = try!(read_offset(&mut data, sections.endian));
         let address_size = try!(data.read_u8());
 
         // Calculate offset of first DIE
@@ -112,14 +113,18 @@ impl<'a> CompilationUnit<'a> {
     }
 
     pub fn abbrev(&'a self, sections: &'a Sections) -> Result<AbbrevHash, ReadError> {
-        AbbrevHash::read(&mut &sections.debug_abbrev[self.abbrev_offset..])
+        let offset = self.abbrev_offset;
+        let len = sections.debug_abbrev.len();
+        if offset >= len {
+            return Err(ReadError::Invalid(format!("abbrev offset {} > {}", offset, len)));
+        }
+        AbbrevHash::read(&mut &sections.debug_abbrev[offset..])
     }
 
     pub fn die_buffer(&'a self, sections: &'a Sections) -> DieBuffer<'a> {
         DieBuffer::new(
             sections.endian,
             self.address_size,
-            Cow::Borrowed(&*sections.debug_str),
             Cow::Borrowed(self.data),
             self.data_offset,
         )
@@ -271,10 +276,8 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
             constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
             constant::DW_FORM_strp => {
-                let offset = try!(read_offset(r, buffer.endian, buffer.debug_str.len()));
-                let mut str_r = &buffer.debug_str[offset..];
-                let val = try!(read_string(&mut str_r));
-                AttributeData::String(val)
+                let val = try!(read_offset(r, buffer.endian));
+                AttributeData::StringOffset(val)
             }
             constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
             constant::DW_FORM_ref_addr => {
@@ -292,7 +295,7 @@ impl<'a> AttributeData<'a> {
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
-                let val = try!(read_offset(r, buffer.endian, std::usize::MAX));
+                let val = try!(read_offset(r, buffer.endian));
                 AttributeData::SecOffset(val)
             }
             constant::DW_FORM_exprloc => {
@@ -308,12 +311,9 @@ impl<'a> AttributeData<'a> {
     }
 }
 
-fn read_offset<R: Read>(r: &mut R, endian: Endian, len: usize) -> Result<usize, ReadError> {
+fn read_offset<R: Read>(r: &mut R, endian: Endian) -> Result<usize, ReadError> {
     // TODO: 64 bit
     let offset = try!(endian.read_u32(r)) as usize;
-    if offset >= len {
-        return Err(ReadError::Invalid(format!("offset {} > {}", offset, len)));
-    }
     Ok(offset)
 }
 

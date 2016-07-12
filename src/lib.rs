@@ -46,7 +46,6 @@ pub struct DieBuffer<'a> {
     endian: Endian,
     address_size: u8,
     // TODO: offset_size: u8,
-    debug_str: Cow<'a, [u8]>,
     data: Cow<'a, [u8]>,
     offset: usize,
 }
@@ -87,6 +86,7 @@ pub enum AttributeData<'a> {
     SData(i64),
     Flag(bool),
     String(&'a str),
+    StringOffset(usize),
     Ref(usize),
     RefAddress(u64),
     RefSig(u64),
@@ -118,14 +118,12 @@ impl<'a> DieBuffer<'a> {
     pub fn new(
         endian: Endian,
         address_size: u8,
-        debug_str: Cow<'a, [u8]>,
         data: Cow<'a, [u8]>,
         offset: usize,
     ) -> DieBuffer<'a> {
         DieBuffer {
             endian: endian,
             address_size: address_size,
-            debug_str: debug_str,
             data: data,
             offset: offset,
         }
@@ -133,10 +131,6 @@ impl<'a> DieBuffer<'a> {
 
     pub fn data(&'a self) -> &'a [u8] {
         &*self.data
-    }
-
-    pub fn debug_str(&'a self) -> &'a [u8] {
-        &*self.debug_str
     }
 }
 

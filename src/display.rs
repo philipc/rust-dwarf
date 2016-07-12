@@ -137,6 +137,8 @@ impl<'a> fmt::Display for AttributeData<'a> {
             AttributeData::SData(val) => write!(f, "(sdata) {:x}", val),
             AttributeData::Flag(val) => write!(f, "(flag) {}", val),
             AttributeData::String(val) => write!(f, "(string) {}", val),
+            // TODO: display the string too
+            AttributeData::StringOffset(val) => write!(f, "(strp) {}", val),
             AttributeData::Ref(val) => write!(f, "(ref) {}", val),
             AttributeData::RefAddress(val) => write!(f, "(ref_address) {}", val),
             AttributeData::RefSig(val) => write!(f, "(ref_sig) {:x}", val),

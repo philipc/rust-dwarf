@@ -125,13 +125,8 @@ impl<'a> AttributeData<'a> {
                 try!(w.write_all(val.as_bytes()));
                 try!(w.write_u8(0));
             },
-            (&AttributeData::String(ref val), constant::DW_FORM_strp) => {
-                // FIXME: reuse existing strings
-                let debug_str = buffer.debug_str.to_mut();
-                let offset = debug_str.len();
-                try!(write_offset(w, buffer.endian, offset));
-                try!(debug_str.write_all(val.as_bytes()));
-                try!(debug_str.write_u8(0));
+            (&AttributeData::StringOffset(ref val), constant::DW_FORM_strp) => {
+                try!(write_offset(w, buffer.endian, *val));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref1) => {
                 try!(w.write_u8(*val as u8));
