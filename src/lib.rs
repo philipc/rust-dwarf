@@ -34,27 +34,20 @@ pub struct CompilationUnitIterator<'a> {
 pub struct CompilationUnit<'a> {
     pub offset: usize,
     pub version: u16,
+    pub endian: Endian,
     pub address_size: u8,
     // TODO: offset_size: u8,
     pub abbrev_offset: usize,
-    pub data: &'a [u8],
+    pub data: Cow<'a, [u8]>,
     pub data_offset: usize,
 }
 
 #[derive(Debug)]
-pub struct DieBuffer<'a> {
-    endian: Endian,
-    address_size: u8,
-    // TODO: offset_size: u8,
-    data: Cow<'a, [u8]>,
-    offset: usize,
-}
-
-#[derive(Debug)]
+// TODO: use multiple lifetimes
 pub struct DieCursor<'a> {
     r: &'a [u8],
     offset: usize,
-    buffer: &'a DieBuffer<'a>,
+    unit: &'a CompilationUnit<'a>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
 }
@@ -114,18 +107,19 @@ pub struct AbbrevAttribute {
     pub form: constant::DwForm,
 }
 
-impl<'a> DieBuffer<'a> {
+impl<'a> CompilationUnit<'a> {
     pub fn new(
         endian: Endian,
         address_size: u8,
-        data: Cow<'a, [u8]>,
-        offset: usize,
-    ) -> DieBuffer<'a> {
-        DieBuffer {
+    ) -> CompilationUnit<'a> {
+        CompilationUnit {
+            offset: 0,
+            version: 4,
             endian: endian,
             address_size: address_size,
-            data: data,
-            offset: offset,
+            abbrev_offset: 0,
+            data: Cow::Owned(Vec::new()),
+            data_offset: 0,
         }
     }
 

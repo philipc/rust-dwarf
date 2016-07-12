@@ -16,7 +16,7 @@ fn display(path: &Path) -> Result<(), dwarf::ReadError> {
     let mut f = dwarf::display::DefaultFormatter::new(&mut stdout, 4);
     while let Some(unit) = try!(units.next()) {
         let abbrev = try!(unit.abbrev(&sections));
-        try!(unit.die_buffer(&sections).entries(&abbrev).display_depth(&mut f, 3));
+        try!(unit.entries(&abbrev).display_depth(&mut f, 3));
     }
     Ok(())
 }

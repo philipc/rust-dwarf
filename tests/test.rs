@@ -1,7 +1,5 @@
 extern crate dwarf;
 
-use std::borrow::Cow;
-
 use dwarf::*;
 use dwarf::constant::*;
 
@@ -14,28 +12,27 @@ fn read_and_display() {
     let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     while let Some(unit) = units.next().unwrap() {
         let abbrev = unit.abbrev(&sections).unwrap();
-        unit.die_buffer(&sections).entries(&abbrev).display(&mut f).unwrap();
+        unit.entries(&abbrev).display(&mut f).unwrap();
     }
 }
 
 #[test]
-fn die_buffer() {
+fn read_and_write() {
     let path = std::env::args_os().next().unwrap();
     let sections = dwarf::elf::load(path).unwrap();
     let mut units = sections.compilation_units();
-    while let Some(unit) = units.next().unwrap() {
-        let abbrev = unit.abbrev(&sections).unwrap();
+    while let Some(read_unit) = units.next().unwrap() {
+        let abbrev = read_unit.abbrev(&sections).unwrap();
 
-        let read_buffer = unit.die_buffer(&sections);
-        let mut entries = read_buffer.entries(&abbrev);
-        let mut write_buffer = DieBuffer::new(
-            sections.endian, unit.address_size, Cow::Borrowed(&[]), unit.data_offset);
+        let mut entries = read_unit.entries(&abbrev);
+        let mut write_unit = CompilationUnit::new(read_unit.endian, read_unit.address_size);
+        write_unit.data_offset = read_unit.data_offset;
         while let Some(entry) = entries.next().unwrap() {
-            entry.write(&mut write_buffer, &abbrev).unwrap();
+            entry.write(&mut write_unit, &abbrev).unwrap();
         }
 
-        let mut read_entries = read_buffer.entries(&abbrev);
-        let mut write_entries = write_buffer.entries(&abbrev);
+        let mut read_entries = read_unit.entries(&abbrev);
+        let mut write_entries = write_unit.entries(&abbrev);
         loop {
             let read_entry = read_entries.next().unwrap();
             let write_entry = write_entries.next().unwrap();
@@ -45,7 +42,7 @@ fn die_buffer() {
             }
         }
 
-        assert_eq!(read_buffer.data(), write_buffer.data());
+        assert_eq!(read_unit.data(), write_unit.data());
     }
 }
 
@@ -73,13 +70,13 @@ fn die() {
         ],
     };
 
-    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
-    write_val.write(&mut buffer, &abbrev_hash).unwrap();
+    let mut unit = CompilationUnit::new(endian, address_size);
+    write_val.write(&mut unit, &abbrev_hash).unwrap();
 
-    let mut r = buffer.data();
-    let read_val = Die::read(&mut r, write_val.offset, &buffer, &abbrev_hash).unwrap();
+    let mut r = unit.data();
+    let read_val = Die::read(&mut r, write_val.offset, &unit, &abbrev_hash).unwrap();
 
-    assert_eq!(buffer.data(), [1, b't', b'e', b's', b't', 0]);
+    assert_eq!(unit.data(), [1, b't', b'e', b's', b't', 0]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
 }
@@ -94,13 +91,13 @@ fn attribute() {
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
-    write_val.write(&mut buffer, &abbrev).unwrap();
+    let mut unit = CompilationUnit::new(endian, address_size);
+    write_val.write(&mut unit, &abbrev).unwrap();
 
-    let mut r = buffer.data();
-    let read_val = Attribute::read(&mut r, &buffer, &abbrev).unwrap();
+    let mut r = unit.data();
+    let read_val = Attribute::read(&mut r, &unit, &abbrev).unwrap();
 
-    assert_eq!(buffer.data(), [0x67, 0x45, 0x23, 0x01]);
+    assert_eq!(unit.data(), [0x67, 0x45, 0x23, 0x01]);
     assert_eq!(r.len(), 0);
     assert_eq!(read_val, write_val);
 }
@@ -138,13 +135,13 @@ fn attribute_data() {
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
         for &indirect in &[false, true] {
-            let mut buffer = DieBuffer::new(endian, address_size, Cow::Borrowed(&[]), 0);
-            write_val.write(&mut buffer, form, indirect).unwrap();
-            let buf = buffer.data();
+            let mut unit = CompilationUnit::new(endian, address_size);
+            write_val.write(&mut unit, form, indirect).unwrap();
+            let buf = unit.data();
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
             let mut r = buf;
-            let read_val = AttributeData::read(&mut r, &buffer, read_form).unwrap();
+            let read_val = AttributeData::read(&mut r, &unit, read_form).unwrap();
 
             if indirect {
                 assert_eq!(buf[0] as u16, form.0);
