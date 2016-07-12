@@ -38,16 +38,20 @@ impl std::convert::From<leb128::Error> for ReadError {
 
 impl Sections {
     pub fn compilation_units(&self) -> CompilationUnitIterator {
-        CompilationUnitIterator::new(self)
+        CompilationUnitIterator::new(self.endian, &*self.debug_info)
+    }
+
+    pub fn abbrev<'a>(&self, unit: &CompilationUnit<'a>) -> Result<AbbrevHash, ReadError> {
+        unit.abbrev(&*self.debug_abbrev)
     }
 }
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a> CompilationUnitIterator<'a> {
-    fn new(sections: &'a Sections) -> Self {
+    fn new(endian: Endian, data: &'a [u8]) -> Self {
         CompilationUnitIterator {
-            sections: sections,
-            data: &sections.debug_info[..],
+            endian: endian,
+            data: data,
             offset: 0,
         }
     }
@@ -62,7 +66,7 @@ impl<'a> CompilationUnitIterator<'a> {
         }
 
         let mut r = self.data;
-        let unit = try!(CompilationUnit::read(&mut r, self.sections, self.offset));
+        let unit = try!(CompilationUnit::read(&mut r, self.endian, self.offset));
         self.offset += self.data.len() - r.len();
         self.data = r;
         Ok(Some(unit))
@@ -72,11 +76,10 @@ impl<'a> CompilationUnitIterator<'a> {
 impl<'a> CompilationUnit<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        sections: &'a Sections,
+        endian: Endian,
         offset: usize,
     ) -> Result<CompilationUnit<'a>, ReadError> {
         let total_len = r.len();
-        let endian = sections.endian;
 
         let len = try!(endian.read_u32(r)) as usize;
         // TODO: 64 bit
@@ -114,13 +117,13 @@ impl<'a> CompilationUnit<'a> {
         })
     }
 
-    pub fn abbrev(&'a self, sections: &'a Sections) -> Result<AbbrevHash, ReadError> {
+    pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
         let offset = self.abbrev_offset;
-        let len = sections.debug_abbrev.len();
+        let len = debug_abbrev.len();
         if offset >= len {
             return Err(ReadError::Invalid(format!("abbrev offset {} > {}", offset, len)));
         }
-        AbbrevHash::read(&mut &sections.debug_abbrev[offset..])
+        AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
 
     pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a> {

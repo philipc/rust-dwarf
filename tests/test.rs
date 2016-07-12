@@ -10,7 +10,7 @@ fn read_and_display() {
     let mut buf = Vec::new();
     let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
     while let Some(unit) = units.next().unwrap() {
-        let abbrev = unit.abbrev(&sections).unwrap();
+        let abbrev = sections.abbrev(&unit).unwrap();
         unit.entries(&abbrev).display(&mut f).unwrap();
     }
 }
@@ -21,7 +21,7 @@ fn read_and_write() {
     let sections = dwarf::elf::load(path).unwrap();
     let mut units = sections.compilation_units();
     while let Some(read_unit) = units.next().unwrap() {
-        let abbrev = read_unit.abbrev(&sections).unwrap();
+        let abbrev = sections.abbrev(&read_unit).unwrap();
 
         let mut entries = read_unit.entries(&abbrev);
         let mut write_unit = CompilationUnit::new(read_unit.endian, read_unit.address_size);

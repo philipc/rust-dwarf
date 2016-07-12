@@ -27,7 +27,7 @@ pub struct Sections {
 
 #[derive(Debug)]
 pub struct CompilationUnitIterator<'a> {
-    sections: &'a Sections,
+    endian: Endian,
     data: &'a [u8],
     offset: usize,
 }
@@ -110,10 +110,7 @@ pub struct AbbrevAttribute {
 }
 
 impl<'a> CompilationUnit<'a> {
-    pub fn new(
-        endian: Endian,
-        address_size: u8,
-    ) -> CompilationUnit<'a> {
+    pub fn new(endian: Endian, address_size: u8) -> CompilationUnit<'a> {
         CompilationUnit {
             offset: 0,
             version: 4,
