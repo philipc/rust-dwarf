@@ -9,6 +9,12 @@ pub enum Endian {
     Big,
 }
 
+impl Default for Endian {
+    fn default() -> Self {
+        Endian::native()
+    }
+}
+
 impl Endian {
     #[cfg(target_endian = "little")]
     pub fn native() -> Self {

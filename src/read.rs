@@ -100,7 +100,14 @@ impl<'a> CompilationUnit<'a> {
         let abbrev_offset = try!(read_offset(&mut data, endian));
         let address_size = try!(data.read_u8());
 
-        Ok(CompilationUnit::new(offset, endian, version, address_size, abbrev_offset, Some(data)))
+        Ok(CompilationUnit {
+            offset: offset,
+            endian: endian,
+            version: version,
+            address_size: address_size,
+            abbrev_offset: abbrev_offset,
+            data: From::from(data),
+        })
     }
 
     pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
@@ -328,7 +335,7 @@ fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<
 
 impl AbbrevHash {
     pub fn read<R: Read>(r: &mut R) -> Result<AbbrevHash, ReadError> {
-        let mut abbrev_hash = AbbrevHash::new();
+        let mut abbrev_hash = AbbrevHash::default();
         while let Some(abbrev) = try!(Abbrev::read(r)) {
             let code = abbrev.code;
             if abbrev_hash.insert(abbrev).is_some() {

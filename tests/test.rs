@@ -24,14 +24,14 @@ fn read_and_write() {
         let abbrev = sections.abbrev(&read_unit).unwrap();
 
         let mut entries = read_unit.entries(&abbrev);
-        let mut write_unit = CompilationUnit::new(
-            read_unit.offset,
-            read_unit.endian,
-            read_unit.version,
-            read_unit.address_size,
-            read_unit.abbrev_offset,
-            None,
-        );
+        let mut write_unit = CompilationUnit {
+            offset: read_unit.offset,
+            endian: read_unit.endian,
+            version: read_unit.version,
+            address_size: read_unit.address_size,
+            abbrev_offset: read_unit.abbrev_offset,
+            data: Default::default(),
+        };
         while let Some(entry) = entries.next().unwrap() {
             entry.write(&mut write_unit, &abbrev).unwrap();
         }

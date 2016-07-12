@@ -5,12 +5,15 @@ use constant::*;
 fn compilation_unit() {
     let offset = 0;
     let endian = Endian::Little;
-    let version = 4;
-    let address_size = 4;
-    let abbrev_offset = 0x12;
     let data = [0x01, 0x23, 0x45, 0x67];
-    let write_val = CompilationUnit::new(
-        offset, endian, version, address_size, abbrev_offset, Some(&data[..]));
+    let write_val = CompilationUnit {
+        offset: offset,
+        endian: endian,
+        version: 4,
+        address_size: 4,
+        abbrev_offset: 0x12,
+        data: From::from(&data[..]),
+    };
 
     let mut buf = Vec::new();
     write_val.write(&mut buf).unwrap();
@@ -31,9 +34,6 @@ fn compilation_unit() {
 
 #[test]
 fn die() {
-    let endian = Endian::Little;
-    let version = 4;
-    let address_size = 4;
     let mut abbrev_hash = AbbrevHash::new();
     let code = 1;
     abbrev_hash.insert(Abbrev {
@@ -54,7 +54,7 @@ fn die() {
         ],
     };
 
-    let mut unit = CompilationUnit::new(0, endian, version, address_size, 0, None);
+    let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
     write_val.write(&mut unit, &abbrev_hash).unwrap();
 
     let mut r = unit.data();
@@ -67,16 +67,13 @@ fn die() {
 
 #[test]
 fn attribute() {
-    let endian = Endian::Little;
-    let version = 4;
-    let address_size = 4;
     let abbrev = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };
     let write_val = Attribute {
         at: DW_AT_sibling,
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut unit = CompilationUnit::new(0, endian, version, address_size, 0, None);
+    let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
     write_val.write(&mut unit, &abbrev).unwrap();
 
     let mut r = unit.data();
@@ -89,9 +86,6 @@ fn attribute() {
 
 #[test]
 fn attribute_data() {
-    let endian = Endian::Little;
-    let version = 4;
-    let address_size = 4;
     for &(ref write_val, form, expect) in &[
         (AttributeData::Address(0x12345678), DW_FORM_addr, &[0x78, 0x56, 0x34, 0x12][..]),
         (AttributeData::Block(&[0x11, 0x22, 0x33]), DW_FORM_block1, &[0x3, 0x11, 0x22, 0x33][..]),
@@ -121,7 +115,7 @@ fn attribute_data() {
         (AttributeData::ExprLoc(&[0x11, 0x22, 0x33]), DW_FORM_exprloc, &[0x3, 0x11, 0x22, 0x33][..]),
     ] {
         for &indirect in &[false, true] {
-            let mut unit = CompilationUnit::new(0, endian, version, address_size, 0, None);
+            let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
             write_val.write(&mut unit, form, indirect).unwrap();
             let buf = unit.data();
 

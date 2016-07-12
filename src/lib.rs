@@ -108,29 +108,20 @@ pub struct AbbrevAttribute {
     pub form: constant::DwForm,
 }
 
-impl<'a> CompilationUnit<'a> {
-    pub fn new(
-        offset: usize,
-        endian: Endian,
-        version: u16,
-        address_size: u8,
-        abbrev_offset: usize,
-        data: Option<&'a [u8]>,
-    ) -> CompilationUnit<'a> {
-        let data = match data {
-            Some(data) => Cow::Borrowed(data),
-            None => Cow::Owned(Vec::new()),
-        };
+impl<'a> Default for CompilationUnit<'a> {
+    fn default() -> Self {
         CompilationUnit {
-            offset: offset,
-            endian: endian,
-            version: version,
-            address_size: address_size,
-            abbrev_offset: abbrev_offset,
-            data: data,
+            offset: 0,
+            endian: Endian::default(),
+            version: 4,
+            address_size: 4,
+            abbrev_offset: 0,
+            data: Cow::Owned(Vec::new()),
         }
     }
+}
 
+impl<'a> CompilationUnit<'a> {
     pub fn header_len(&self) -> usize {
         // len (TODO: 64 bit) + version + abbrev_offset + address_size + data
         4 + 2 + 4 + 1
@@ -167,7 +158,7 @@ impl<'a> Die<'a> {
 
 impl AbbrevHash {
     pub fn new() -> Self {
-        AbbrevHash(std::collections::HashMap::new())
+        Default::default()
     }
 
     pub fn len(&self) -> usize {
