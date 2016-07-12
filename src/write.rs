@@ -18,6 +18,23 @@ impl std::convert::From<std::io::Error> for WriteError {
     }
 }
 
+impl<'a> CompilationUnit<'a> {
+    pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
+        // version + abbrev_offset + address_size + data
+        let len = 2 + 4 + 1 + self.data.len();
+        // TODO: 64 bit
+        if len >= 0xfffffff0 {
+            return Err(WriteError::Invalid(format!("compilation unit length {}", len)));
+        }
+        try!(self.endian.write_u32(w, len as u32));
+        try!(self.endian.write_u16(w, self.version));
+        try!(write_offset(w, self.endian, self.abbrev_offset));
+        try!(w.write_u8(self.address_size));
+        try!(w.write_all(&*self.data));
+        Ok(())
+    }
+}
+
 impl<'a> Die<'a> {
     pub fn write_null(unit: &mut CompilationUnit<'a>) -> std::io::Result<()> {
         let w = unit.data.to_mut();

@@ -32,16 +32,15 @@ pub struct CompilationUnitIterator<'a> {
     offset: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CompilationUnit<'a> {
     pub offset: usize,
-    pub version: u16,
     pub endian: Endian,
+    pub version: u16,
     pub address_size: u8,
     // TODO: offset_size: u8,
     pub abbrev_offset: usize,
     pub data: Cow<'a, [u8]>,
-    pub data_offset: usize,
 }
 
 #[derive(Debug)]
@@ -110,20 +109,43 @@ pub struct AbbrevAttribute {
 }
 
 impl<'a> CompilationUnit<'a> {
-    pub fn new(endian: Endian, address_size: u8) -> CompilationUnit<'a> {
+    pub fn new(
+        offset: usize,
+        endian: Endian,
+        version: u16,
+        address_size: u8,
+        abbrev_offset: usize,
+        data: Option<&'a [u8]>,
+    ) -> CompilationUnit<'a> {
+        let data = match data {
+            Some(data) => Cow::Borrowed(data),
+            None => Cow::Owned(Vec::new()),
+        };
         CompilationUnit {
-            offset: 0,
-            version: 4,
+            offset: offset,
             endian: endian,
+            version: version,
             address_size: address_size,
-            abbrev_offset: 0,
-            data: Cow::Owned(Vec::new()),
-            data_offset: 0,
+            abbrev_offset: abbrev_offset,
+            data: data,
         }
+    }
+
+    pub fn header_len(&self) -> usize {
+        // len (TODO: 64 bit) + version + abbrev_offset + address_size + data
+        4 + 2 + 4 + 1
+    }
+
+    pub fn len(&self) -> usize {
+        self.header_len() + self.data.len()
     }
 
     pub fn data(&'a self) -> &'a [u8] {
         &*self.data
+    }
+
+    pub fn data_offset(&self) -> usize {
+        self.offset + self.header_len()
     }
 }
 

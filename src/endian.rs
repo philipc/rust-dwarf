@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use byteorder;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Endian {
     Little,
     Big,

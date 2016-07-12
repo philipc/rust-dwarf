@@ -24,8 +24,14 @@ fn read_and_write() {
         let abbrev = sections.abbrev(&read_unit).unwrap();
 
         let mut entries = read_unit.entries(&abbrev);
-        let mut write_unit = CompilationUnit::new(read_unit.endian, read_unit.address_size);
-        write_unit.data_offset = read_unit.data_offset;
+        let mut write_unit = CompilationUnit::new(
+            read_unit.offset,
+            read_unit.endian,
+            read_unit.version,
+            read_unit.address_size,
+            read_unit.abbrev_offset,
+            None,
+        );
         while let Some(entry) = entries.next().unwrap() {
             entry.write(&mut write_unit, &abbrev).unwrap();
         }
@@ -41,6 +47,6 @@ fn read_and_write() {
             }
         }
 
-        assert_eq!(read_unit.data(), write_unit.data());
+        assert_eq!(read_unit, write_unit);
     }
 }

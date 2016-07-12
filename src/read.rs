@@ -1,5 +1,4 @@
 use std;
-use std::borrow::Cow;
 use std::io::Read;
 use std::ops::Deref;
 use byteorder::{ReadBytesExt};
@@ -66,7 +65,7 @@ impl<'a> CompilationUnitIterator<'a> {
         }
 
         let mut r = self.data;
-        let unit = try!(CompilationUnit::read(&mut r, self.endian, self.offset));
+        let unit = try!(CompilationUnit::read(&mut r, self.offset, self.endian));
         self.offset += self.data.len() - r.len();
         self.data = r;
         Ok(Some(unit))
@@ -76,11 +75,9 @@ impl<'a> CompilationUnitIterator<'a> {
 impl<'a> CompilationUnit<'a> {
     pub fn read(
         r: &mut &'a [u8],
-        endian: Endian,
         offset: usize,
+        endian: Endian,
     ) -> Result<CompilationUnit<'a>, ReadError> {
-        let total_len = r.len();
-
         let len = try!(endian.read_u32(r)) as usize;
         // TODO: 64 bit
         if len >= 0xfffffff0 {
@@ -103,18 +100,7 @@ impl<'a> CompilationUnit<'a> {
         let abbrev_offset = try!(read_offset(&mut data, endian));
         let address_size = try!(data.read_u8());
 
-        // Calculate offset of first DIE
-        let data_offset = offset + (total_len - r.len() - data.len());
-
-        Ok(CompilationUnit {
-            offset: offset,
-            version: version,
-            endian: endian,
-            address_size: address_size,
-            abbrev_offset: abbrev_offset,
-            data: Cow::Borrowed(data),
-            data_offset: data_offset,
-        })
+        Ok(CompilationUnit::new(offset, endian, version, address_size, abbrev_offset, Some(data)))
     }
 
     pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
@@ -127,14 +113,15 @@ impl<'a> CompilationUnit<'a> {
     }
 
     pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a> {
-        DieCursor::new(self.data.deref(), self.data_offset, self, abbrev)
+        DieCursor::new(self.data.deref(), self.data_offset(), self, abbrev)
     }
 
     pub fn entry(&'a self, offset: usize, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a>> {
-        if offset < self.data_offset {
+        let data_offset = self.data_offset();
+        if offset < data_offset {
             return None;
         }
-        let relative_offset = offset - self.data_offset;
+        let relative_offset = offset - data_offset;
         if relative_offset >= self.data.len() {
             return None;
         }
