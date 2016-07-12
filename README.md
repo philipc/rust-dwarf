@@ -1,6 +1,6 @@
 # rust-dwarf
-Rust library for decoding DWARF debugging information
+Rust library for reading and writing DWARF debugging information
 
-## Example:
+[Documentation](https://philipc.github.io/rust-dwarf/dwarf/index.html)
 
-See [examples/display.rs](examples/display.rs)
+[Example](examples/display.rs)

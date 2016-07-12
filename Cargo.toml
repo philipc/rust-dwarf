@@ -1,9 +1,10 @@
 [package]
 name = "dwarf"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Philip Craig <philipjcraig@gmail.com>"]
-description = "Decode DWARF debugging information"
+description = "Read and write DWARF debugging information"
 repository = "https://github.com/philipc/rust-dwarf"
+documentation = "https://philipc.github.io/rust-dwarf/dwarf/index.html"
 keywords = ["DWARF", "ELF"]
 license = "MIT/Apache-2.0"
 
