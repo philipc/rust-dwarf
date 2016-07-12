@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `types` mod in crate `elf`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, types">
+
+    <title>elf::types - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='../index.html'>elf</a></p><script>window.sidebarCurrent = {name: 'types', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>elf</a>::<wbr><a class='mod' href=''>types</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-9' class='srclink' href='../../src/elf/types.rs.html#1-804' title='goto source code'>[src]</a></span></h1>
+<h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Class.html'
+                                  title='elf::types::Class'>Class</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file class (32-bit vs 64-bit)</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Data.html'
+                                  title='elf::types::Data'>Data</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file data format (little-endian vs big-endian)</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.FileHeader.html'
+                                  title='elf::types::FileHeader'>FileHeader</a></td>
+                           <td class='docblock short'>
+                                <p>Encapsulates the contents of the ELF File Header</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Machine.html'
+                                  title='elf::types::Machine'>Machine</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file machine architecture</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.OSABI.html'
+                                  title='elf::types::OSABI'>OSABI</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file OS ABI</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ProgFlag.html'
+                                  title='elf::types::ProgFlag'>ProgFlag</a></td>
+                           <td class='docblock short'>
+                                <p>Represents ELF Program Header flags</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ProgType.html'
+                                  title='elf::types::ProgType'>ProgType</a></td>
+                           <td class='docblock short'>
+                                <p>Represents ELF Program Header type</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ProgramHeader.html'
+                                  title='elf::types::ProgramHeader'>ProgramHeader</a></td>
+                           <td class='docblock short'>
+                                <p>Encapsulates the contents of an ELF Program Header</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SectionFlag.html'
+                                  title='elf::types::SectionFlag'>SectionFlag</a></td>
+                           <td class='docblock short'>
+                                <p>Wrapper type for SectionFlag</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SectionHeader.html'
+                                  title='elf::types::SectionHeader'>SectionHeader</a></td>
+                           <td class='docblock short'>
+                                <p>Encapsulates the contents of an ELF Section Header</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SectionType.html'
+                                  title='elf::types::SectionType'>SectionType</a></td>
+                           <td class='docblock short'>
+                                <p>Represens ELF Section type</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Symbol.html'
+                                  title='elf::types::Symbol'>Symbol</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SymbolBind.html'
+                                  title='elf::types::SymbolBind'>SymbolBind</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SymbolType.html'
+                                  title='elf::types::SymbolType'>SymbolType</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.SymbolVis.html'
+                                  title='elf::types::SymbolVis'>SymbolVis</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Type.html'
+                                  title='elf::types::Type'>Type</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file type (object, executable, shared lib, core)</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Version.html'
+                                  title='elf::types::Version'>Version</a></td>
+                           <td class='docblock short'>
+                                <p>Represents the ELF file version</p>
+                           </td>
+                       </tr></table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_ABIVERSION.html'
+                                  title='elf::types::EI_ABIVERSION'>EI_ABIVERSION</a></td>
+                           <td class='docblock short'>
+                                <p>Location of ABI version field in ELF file header ident array</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_CLASS.html'
+                                  title='elf::types::EI_CLASS'>EI_CLASS</a></td>
+                           <td class='docblock short'>
+                                <p>Location of ELF class field in ELF file header ident array</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_DATA.html'
+                                  title='elf::types::EI_DATA'>EI_DATA</a></td>
+                           <td class='docblock short'>
+                                <p>Location of data format field in ELF file header ident array</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_NIDENT.html'
+                                  title='elf::types::EI_NIDENT'>EI_NIDENT</a></td>
+                           <td class='docblock short'>
+                                <p>Length of ELF file header platform-independent identification fields</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_OSABI.html'
+                                  title='elf::types::EI_OSABI'>EI_OSABI</a></td>
+                           <td class='docblock short'>
+                                <p>Location of OS ABI field in ELF file header ident array</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EI_VERSION.html'
+                                  title='elf::types::EI_VERSION'>EI_VERSION</a></td>
+                           <td class='docblock short'>
+                                <p>Location of ELF version field in ELF file header ident array</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFCLASS32.html'
+                                  title='elf::types::ELFCLASS32'>ELFCLASS32</a></td>
+                           <td class='docblock short'>
+                                <p>32-bit ELF file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFCLASS64.html'
+                                  title='elf::types::ELFCLASS64'>ELFCLASS64</a></td>
+                           <td class='docblock short'>
+                                <p>64-bit ELF file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFCLASSNONE.html'
+                                  title='elf::types::ELFCLASSNONE'>ELFCLASSNONE</a></td>
+                           <td class='docblock short'>
+                                <p>Invalid ELF file class</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFDATA2LSB.html'
+                                  title='elf::types::ELFDATA2LSB'>ELFDATA2LSB</a></td>
+                           <td class='docblock short'>
+                                <p>little-endian ELF file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFDATA2MSB.html'
+                                  title='elf::types::ELFDATA2MSB'>ELFDATA2MSB</a></td>
+                           <td class='docblock short'>
+                                <p>big-endian ELF file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFDATANONE.html'
+                                  title='elf::types::ELFDATANONE'>ELFDATANONE</a></td>
+                           <td class='docblock short'>
+                                <p>Invalid ELF data format</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFMAG0.html'
+                                  title='elf::types::ELFMAG0'>ELFMAG0</a></td>
+                           <td class='docblock short'>
+                                <p>ELF magic number byte 1</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFMAG1.html'
+                                  title='elf::types::ELFMAG1'>ELFMAG1</a></td>
+                           <td class='docblock short'>
+                                <p>ELF magic number byte 2</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFMAG2.html'
+                                  title='elf::types::ELFMAG2'>ELFMAG2</a></td>
+                           <td class='docblock short'>
+                                <p>ELF magic number byte 3</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFMAG3.html'
+                                  title='elf::types::ELFMAG3'>ELFMAG3</a></td>
+                           <td class='docblock short'>
+                                <p>ELF magic number byte 4</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_AIX.html'
+                                  title='elf::types::ELFOSABI_AIX'>ELFOSABI_AIX</a></td>
+                           <td class='docblock short'>
+                                <p>AIX</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_FREEBSD.html'
+                                  title='elf::types::ELFOSABI_FREEBSD'>ELFOSABI_FREEBSD</a></td>
+                           <td class='docblock short'>
+                                <p>FreeBSD</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_HPUX.html'
+                                  title='elf::types::ELFOSABI_HPUX'>ELFOSABI_HPUX</a></td>
+                           <td class='docblock short'>
+                                <p>HP-UX</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_IRIX.html'
+                                  title='elf::types::ELFOSABI_IRIX'>ELFOSABI_IRIX</a></td>
+                           <td class='docblock short'>
+                                <p>SGI Irix</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_LINUX.html'
+                                  title='elf::types::ELFOSABI_LINUX'>ELFOSABI_LINUX</a></td>
+                           <td class='docblock short'>
+                                <p>Linux with GNU extensions</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_MODESTO.html'
+                                  title='elf::types::ELFOSABI_MODESTO'>ELFOSABI_MODESTO</a></td>
+                           <td class='docblock short'>
+                                <p>Novell Modesto</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_NETBSD.html'
+                                  title='elf::types::ELFOSABI_NETBSD'>ELFOSABI_NETBSD</a></td>
+                           <td class='docblock short'>
+                                <p>NetBSD</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_NONE.html'
+                                  title='elf::types::ELFOSABI_NONE'>ELFOSABI_NONE</a></td>
+                           <td class='docblock short'>
+                                <p>Defaults to Unix System V</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_OPENBSD.html'
+                                  title='elf::types::ELFOSABI_OPENBSD'>ELFOSABI_OPENBSD</a></td>
+                           <td class='docblock short'>
+                                <p>OpenBSD</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_SOLARIS.html'
+                                  title='elf::types::ELFOSABI_SOLARIS'>ELFOSABI_SOLARIS</a></td>
+                           <td class='docblock short'>
+                                <p>Solaris</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_SYSV.html'
+                                  title='elf::types::ELFOSABI_SYSV'>ELFOSABI_SYSV</a></td>
+                           <td class='docblock short'>
+                                <p>Unix System V</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ELFOSABI_TRU64.html'
+                                  title='elf::types::ELFOSABI_TRU64'>ELFOSABI_TRU64</a></td>
+                           <td class='docblock short'>
+                                <p>Compaq TRU64 UNIX</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_386.html'
+                                  title='elf::types::EM_386'>EM_386</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68HC05.html'
+                                  title='elf::types::EM_68HC05'>EM_68HC05</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68HC08.html'
+                                  title='elf::types::EM_68HC08'>EM_68HC08</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68HC11.html'
+                                  title='elf::types::EM_68HC11'>EM_68HC11</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68HC12.html'
+                                  title='elf::types::EM_68HC12'>EM_68HC12</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68HC16.html'
+                                  title='elf::types::EM_68HC16'>EM_68HC16</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_68K.html'
+                                  title='elf::types::EM_68K'>EM_68K</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_860.html'
+                                  title='elf::types::EM_860'>EM_860</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_88K.html'
+                                  title='elf::types::EM_88K'>EM_88K</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_960.html'
+                                  title='elf::types::EM_960'>EM_960</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_AARCH64.html'
+                                  title='elf::types::EM_AARCH64'>EM_AARCH64</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ARC.html'
+                                  title='elf::types::EM_ARC'>EM_ARC</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ARC_A5.html'
+                                  title='elf::types::EM_ARC_A5'>EM_ARC_A5</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ARM.html'
+                                  title='elf::types::EM_ARM'>EM_ARM</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_AVR.html'
+                                  title='elf::types::EM_AVR'>EM_AVR</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_COLDFIRE.html'
+                                  title='elf::types::EM_COLDFIRE'>EM_COLDFIRE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_CRIS.html'
+                                  title='elf::types::EM_CRIS'>EM_CRIS</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_D10V.html'
+                                  title='elf::types::EM_D10V'>EM_D10V</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_D30V.html'
+                                  title='elf::types::EM_D30V'>EM_D30V</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_FAKE_ALPHA.html'
+                                  title='elf::types::EM_FAKE_ALPHA'>EM_FAKE_ALPHA</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_FIREPATH.html'
+                                  title='elf::types::EM_FIREPATH'>EM_FIREPATH</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_FR20.html'
+                                  title='elf::types::EM_FR20'>EM_FR20</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_FR30.html'
+                                  title='elf::types::EM_FR30'>EM_FR30</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_FX66.html'
+                                  title='elf::types::EM_FX66'>EM_FX66</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_H8S.html'
+                                  title='elf::types::EM_H8S'>EM_H8S</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_H8_300.html'
+                                  title='elf::types::EM_H8_300'>EM_H8_300</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_H8_300H.html'
+                                  title='elf::types::EM_H8_300H'>EM_H8_300H</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_H8_500.html'
+                                  title='elf::types::EM_H8_500'>EM_H8_500</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_HUANY.html'
+                                  title='elf::types::EM_HUANY'>EM_HUANY</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_IA_64.html'
+                                  title='elf::types::EM_IA_64'>EM_IA_64</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_JAVELIN.html'
+                                  title='elf::types::EM_JAVELIN'>EM_JAVELIN</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_M32.html'
+                                  title='elf::types::EM_M32'>EM_M32</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_M32R.html'
+                                  title='elf::types::EM_M32R'>EM_M32R</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ME16.html'
+                                  title='elf::types::EM_ME16'>EM_ME16</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MICROBLAZE.html'
+                                  title='elf::types::EM_MICROBLAZE'>EM_MICROBLAZE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MIPS.html'
+                                  title='elf::types::EM_MIPS'>EM_MIPS</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MIPS_RS3_LE.html'
+                                  title='elf::types::EM_MIPS_RS3_LE'>EM_MIPS_RS3_LE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MIPS_X.html'
+                                  title='elf::types::EM_MIPS_X'>EM_MIPS_X</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MMA.html'
+                                  title='elf::types::EM_MMA'>EM_MMA</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MMIX.html'
+                                  title='elf::types::EM_MMIX'>EM_MMIX</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MN10200.html'
+                                  title='elf::types::EM_MN10200'>EM_MN10200</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_MN10300.html'
+                                  title='elf::types::EM_MN10300'>EM_MN10300</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_NCPU.html'
+                                  title='elf::types::EM_NCPU'>EM_NCPU</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_NDR1.html'
+                                  title='elf::types::EM_NDR1'>EM_NDR1</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_NONE.html'
+                                  title='elf::types::EM_NONE'>EM_NONE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_OPENRISC.html'
+                                  title='elf::types::EM_OPENRISC'>EM_OPENRISC</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PARISC.html'
+                                  title='elf::types::EM_PARISC'>EM_PARISC</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PCP.html'
+                                  title='elf::types::EM_PCP'>EM_PCP</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PDSP.html'
+                                  title='elf::types::EM_PDSP'>EM_PDSP</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PJ.html'
+                                  title='elf::types::EM_PJ'>EM_PJ</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PPC.html'
+                                  title='elf::types::EM_PPC'>EM_PPC</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PPC64.html'
+                                  title='elf::types::EM_PPC64'>EM_PPC64</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_PRISM.html'
+                                  title='elf::types::EM_PRISM'>EM_PRISM</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_RCE.html'
+                                  title='elf::types::EM_RCE'>EM_RCE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_RH32.html'
+                                  title='elf::types::EM_RH32'>EM_RH32</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_S370.html'
+                                  title='elf::types::EM_S370'>EM_S370</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_S390.html'
+                                  title='elf::types::EM_S390'>EM_S390</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_SH.html'
+                                  title='elf::types::EM_SH'>EM_SH</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_SPARC.html'
+                                  title='elf::types::EM_SPARC'>EM_SPARC</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_SPARC32PLUS.html'
+                                  title='elf::types::EM_SPARC32PLUS'>EM_SPARC32PLUS</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_SPARCV9.html'
+                                  title='elf::types::EM_SPARCV9'>EM_SPARCV9</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ST100.html'
+                                  title='elf::types::EM_ST100'>EM_ST100</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ST19.html'
+                                  title='elf::types::EM_ST19'>EM_ST19</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ST7.html'
+                                  title='elf::types::EM_ST7'>EM_ST7</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ST9PLUS.html'
+                                  title='elf::types::EM_ST9PLUS'>EM_ST9PLUS</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_STARCORE.html'
+                                  title='elf::types::EM_STARCORE'>EM_STARCORE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_SVX.html'
+                                  title='elf::types::EM_SVX'>EM_SVX</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_TILEGX.html'
+                                  title='elf::types::EM_TILEGX'>EM_TILEGX</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_TILEPRO.html'
+                                  title='elf::types::EM_TILEPRO'>EM_TILEPRO</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_TINYJ.html'
+                                  title='elf::types::EM_TINYJ'>EM_TINYJ</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_TRICORE.html'
+                                  title='elf::types::EM_TRICORE'>EM_TRICORE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_V800.html'
+                                  title='elf::types::EM_V800'>EM_V800</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_V850.html'
+                                  title='elf::types::EM_V850'>EM_V850</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_VAX.html'
+                                  title='elf::types::EM_VAX'>EM_VAX</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_VPP500.html'
+                                  title='elf::types::EM_VPP500'>EM_VPP500</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_X86_64.html'
+                                  title='elf::types::EM_X86_64'>EM_X86_64</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_XTENSA.html'
+                                  title='elf::types::EM_XTENSA'>EM_XTENSA</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EM_ZSP.html'
+                                  title='elf::types::EM_ZSP'>EM_ZSP</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ET_CORE.html'
+                                  title='elf::types::ET_CORE'>ET_CORE</a></td>
+                           <td class='docblock short'>
+                                <p>Core file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ET_DYN.html'
+                                  title='elf::types::ET_DYN'>ET_DYN</a></td>
+                           <td class='docblock short'>
+                                <p>Shared library</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ET_EXEC.html'
+                                  title='elf::types::ET_EXEC'>ET_EXEC</a></td>
+                           <td class='docblock short'>
+                                <p>Executable file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ET_NONE.html'
+                                  title='elf::types::ET_NONE'>ET_NONE</a></td>
+                           <td class='docblock short'>
+                                <p>No file type</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.ET_REL.html'
+                                  title='elf::types::ET_REL'>ET_REL</a></td>
+                           <td class='docblock short'>
+                                <p>Relocatable object file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EV_CURRENT.html'
+                                  title='elf::types::EV_CURRENT'>EV_CURRENT</a></td>
+                           <td class='docblock short'>
+                                <p>Current version</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.EV_NONE.html'
+                                  title='elf::types::EV_NONE'>EV_NONE</a></td>
+                           <td class='docblock short'>
+                                <p>Invalid version</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PF_NONE.html'
+                                  title='elf::types::PF_NONE'>PF_NONE</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PF_R.html'
+                                  title='elf::types::PF_R'>PF_R</a></td>
+                           <td class='docblock short'>
+                                <p>Readable program segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PF_W.html'
+                                  title='elf::types::PF_W'>PF_W</a></td>
+                           <td class='docblock short'>
+                                <p>Writable program segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PF_X.html'
+                                  title='elf::types::PF_X'>PF_X</a></td>
+                           <td class='docblock short'>
+                                <p>Executable program segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_DYNAMIC.html'
+                                  title='elf::types::PT_DYNAMIC'>PT_DYNAMIC</a></td>
+                           <td class='docblock short'>
+                                <p>Dynamic linking information</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_GNU_EH_FRAME.html'
+                                  title='elf::types::PT_GNU_EH_FRAME'>PT_GNU_EH_FRAME</a></td>
+                           <td class='docblock short'>
+                                <p>GCC .eh_frame_hdr segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_GNU_RELRO.html'
+                                  title='elf::types::PT_GNU_RELRO'>PT_GNU_RELRO</a></td>
+                           <td class='docblock short'>
+                                <p>Read-only after relocation</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_GNU_STACK.html'
+                                  title='elf::types::PT_GNU_STACK'>PT_GNU_STACK</a></td>
+                           <td class='docblock short'>
+                                <p>Indicates stack executability</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_INTERP.html'
+                                  title='elf::types::PT_INTERP'>PT_INTERP</a></td>
+                           <td class='docblock short'>
+                                <p>Program interpreter</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_LOAD.html'
+                                  title='elf::types::PT_LOAD'>PT_LOAD</a></td>
+                           <td class='docblock short'>
+                                <p>Loadable program segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_NOTE.html'
+                                  title='elf::types::PT_NOTE'>PT_NOTE</a></td>
+                           <td class='docblock short'>
+                                <p>Auxiliary information</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_NULL.html'
+                                  title='elf::types::PT_NULL'>PT_NULL</a></td>
+                           <td class='docblock short'>
+                                <p>Program header table entry unused</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_PHDR.html'
+                                  title='elf::types::PT_PHDR'>PT_PHDR</a></td>
+                           <td class='docblock short'>
+                                <p>The program header table</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_SHLIB.html'
+                                  title='elf::types::PT_SHLIB'>PT_SHLIB</a></td>
+                           <td class='docblock short'>
+                                <p>Unused</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.PT_TLS.html'
+                                  title='elf::types::PT_TLS'>PT_TLS</a></td>
+                           <td class='docblock short'>
+                                <p>Thread-local storage segment</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_ALLOC.html'
+                                  title='elf::types::SHF_ALLOC'>SHF_ALLOC</a></td>
+                           <td class='docblock short'>
+                                <p>Occupies memory during execution</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_EXECINSTR.html'
+                                  title='elf::types::SHF_EXECINSTR'>SHF_EXECINSTR</a></td>
+                           <td class='docblock short'>
+                                <p>Executable</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_GROUP.html'
+                                  title='elf::types::SHF_GROUP'>SHF_GROUP</a></td>
+                           <td class='docblock short'>
+                                <p>Section is member of a group</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_INFO_LINK.html'
+                                  title='elf::types::SHF_INFO_LINK'>SHF_INFO_LINK</a></td>
+                           <td class='docblock short'>
+                                <p>`sh_info&#39; contains SHT index</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_LINK_ORDER.html'
+                                  title='elf::types::SHF_LINK_ORDER'>SHF_LINK_ORDER</a></td>
+                           <td class='docblock short'>
+                                <p>Preserve order after combining</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_MERGE.html'
+                                  title='elf::types::SHF_MERGE'>SHF_MERGE</a></td>
+                           <td class='docblock short'>
+                                <p>Might be merged</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_NONE.html'
+                                  title='elf::types::SHF_NONE'>SHF_NONE</a></td>
+                           <td class='docblock short'>
+                                <p>Empty flags</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_OS_NONCONFORMING.html'
+                                  title='elf::types::SHF_OS_NONCONFORMING'>SHF_OS_NONCONFORMING</a></td>
+                           <td class='docblock short'>
+                                <p>Non-standard OS specific handling required</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_STRINGS.html'
+                                  title='elf::types::SHF_STRINGS'>SHF_STRINGS</a></td>
+                           <td class='docblock short'>
+                                <p>Contains nul-terminated strings</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_TLS.html'
+                                  title='elf::types::SHF_TLS'>SHF_TLS</a></td>
+                           <td class='docblock short'>
+                                <p>Section hold thread-local data</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHF_WRITE.html'
+                                  title='elf::types::SHF_WRITE'>SHF_WRITE</a></td>
+                           <td class='docblock short'>
+                                <p>Writable</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_DYNAMIC.html'
+                                  title='elf::types::SHT_DYNAMIC'>SHT_DYNAMIC</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains information for dynamic linking</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_DYNSYM.html'
+                                  title='elf::types::SHT_DYNSYM'>SHT_DYNSYM</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains a minimal set of dynamic linking symbols</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_FINI_ARRAY.html'
+                                  title='elf::types::SHT_FINI_ARRAY'>SHT_FINI_ARRAY</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains an array of destructors</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_ATTRIBUTES.html'
+                                  title='elf::types::SHT_GNU_ATTRIBUTES'>SHT_GNU_ATTRIBUTES</a></td>
+                           <td class='docblock short'>
+                                <p>Object attributes</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_HASH.html'
+                                  title='elf::types::SHT_GNU_HASH'>SHT_GNU_HASH</a></td>
+                           <td class='docblock short'>
+                                <p>GNU-style hash section</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_LIBLIST.html'
+                                  title='elf::types::SHT_GNU_LIBLIST'>SHT_GNU_LIBLIST</a></td>
+                           <td class='docblock short'>
+                                <p>Pre-link library list</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_VERDEF.html'
+                                  title='elf::types::SHT_GNU_VERDEF'>SHT_GNU_VERDEF</a></td>
+                           <td class='docblock short'>
+                                <p>Version definition section</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_VERNEED.html'
+                                  title='elf::types::SHT_GNU_VERNEED'>SHT_GNU_VERNEED</a></td>
+                           <td class='docblock short'>
+                                <p>Version needs section</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GNU_VERSYM.html'
+                                  title='elf::types::SHT_GNU_VERSYM'>SHT_GNU_VERSYM</a></td>
+                           <td class='docblock short'>
+                                <p>Version symbol table</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_GROUP.html'
+                                  title='elf::types::SHT_GROUP'>SHT_GROUP</a></td>
+                           <td class='docblock short'>
+                                <p>Section group</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_HASH.html'
+                                  title='elf::types::SHT_HASH'>SHT_HASH</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains a symbol hash table. Must be present for dynamic linking</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_INIT_ARRAY.html'
+                                  title='elf::types::SHT_INIT_ARRAY'>SHT_INIT_ARRAY</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains an array of constructors</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_NOBITS.html'
+                                  title='elf::types::SHT_NOBITS'>SHT_NOBITS</a></td>
+                           <td class='docblock short'>
+                                <p>Section data occupies no space in the file but otherwise resembles SHT_PROGBITS</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_NOTE.html'
+                                  title='elf::types::SHT_NOTE'>SHT_NOTE</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains information that marks the file in some way</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_NULL.html'
+                                  title='elf::types::SHT_NULL'>SHT_NULL</a></td>
+                           <td class='docblock short'>
+                                <p>Inactive section with undefined values</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_NUM.html'
+                                  title='elf::types::SHT_NUM'>SHT_NUM</a></td>
+                           <td class='docblock short'>
+                                <p>Number of reserved SHT_* values</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_PREINIT_ARRAY.html'
+                                  title='elf::types::SHT_PREINIT_ARRAY'>SHT_PREINIT_ARRAY</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains an array of pre-constructors</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_PROGBITS.html'
+                                  title='elf::types::SHT_PROGBITS'>SHT_PROGBITS</a></td>
+                           <td class='docblock short'>
+                                <p>Information defined by the program, includes executable code and data</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_REL.html'
+                                  title='elf::types::SHT_REL'>SHT_REL</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains relocation entries without explicit addends</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_RELA.html'
+                                  title='elf::types::SHT_RELA'>SHT_RELA</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains relocation entries with explicit addends</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_SHLIB.html'
+                                  title='elf::types::SHT_SHLIB'>SHT_SHLIB</a></td>
+                           <td class='docblock short'>
+                                <p>Section is reserved but has unspecified semantics</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_STRTAB.html'
+                                  title='elf::types::SHT_STRTAB'>SHT_STRTAB</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains a string table</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_SYMTAB.html'
+                                  title='elf::types::SHT_SYMTAB'>SHT_SYMTAB</a></td>
+                           <td class='docblock short'>
+                                <p>Section data contains a symbol table</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.SHT_SYMTAB_SHNDX.html'
+                                  title='elf::types::SHT_SYMTAB_SHNDX'>SHT_SYMTAB_SHNDX</a></td>
+                           <td class='docblock short'>
+                                <p>Extended symbol table section index</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STB_GLOBAL.html'
+                                  title='elf::types::STB_GLOBAL'>STB_GLOBAL</a></td>
+                           <td class='docblock short'>
+                                <p>Global symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STB_GNU_UNIQUE.html'
+                                  title='elf::types::STB_GNU_UNIQUE'>STB_GNU_UNIQUE</a></td>
+                           <td class='docblock short'>
+                                <p>Unique symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STB_LOCAL.html'
+                                  title='elf::types::STB_LOCAL'>STB_LOCAL</a></td>
+                           <td class='docblock short'>
+                                <p>Local symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STB_WEAK.html'
+                                  title='elf::types::STB_WEAK'>STB_WEAK</a></td>
+                           <td class='docblock short'>
+                                <p>Weak symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_COMMON.html'
+                                  title='elf::types::STT_COMMON'>STT_COMMON</a></td>
+                           <td class='docblock short'>
+                                <p>Common data object symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_FILE.html'
+                                  title='elf::types::STT_FILE'>STT_FILE</a></td>
+                           <td class='docblock short'>
+                                <p>File name symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_FUNC.html'
+                                  title='elf::types::STT_FUNC'>STT_FUNC</a></td>
+                           <td class='docblock short'>
+                                <p>Code object symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_GNU_IFUNC.html'
+                                  title='elf::types::STT_GNU_IFUNC'>STT_GNU_IFUNC</a></td>
+                           <td class='docblock short'>
+                                <p>Indirect code object symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_NOTYPE.html'
+                                  title='elf::types::STT_NOTYPE'>STT_NOTYPE</a></td>
+                           <td class='docblock short'>
+                                <p>Unspecified symbol type</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_OBJECT.html'
+                                  title='elf::types::STT_OBJECT'>STT_OBJECT</a></td>
+                           <td class='docblock short'>
+                                <p>Data object symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_SECTION.html'
+                                  title='elf::types::STT_SECTION'>STT_SECTION</a></td>
+                           <td class='docblock short'>
+                                <p>Section symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STT_TLS.html'
+                                  title='elf::types::STT_TLS'>STT_TLS</a></td>
+                           <td class='docblock short'>
+                                <p>Thread-local data object symbol</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STV_DEFAULT.html'
+                                  title='elf::types::STV_DEFAULT'>STV_DEFAULT</a></td>
+                           <td class='docblock short'>
+                                <p>Default symbol visibility</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STV_HIDDEN.html'
+                                  title='elf::types::STV_HIDDEN'>STV_HIDDEN</a></td>
+                           <td class='docblock short'>
+                                <p>Hidden visibility</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STV_INTERNAL.html'
+                                  title='elf::types::STV_INTERNAL'>STV_INTERNAL</a></td>
+                           <td class='docblock short'>
+                                <p>Processor-specific hidden visibility</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='constant' href='constant.STV_PROTECTED.html'
+                                  title='elf::types::STV_PROTECTED'>STV_PROTECTED</a></td>
+                           <td class='docblock short'>
+                                <p>Protected visibility</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "elf";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../jquery.js"></script>
+    <script src="../../main.js"></script>
+    
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>

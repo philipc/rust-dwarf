@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Die` struct in crate `dwarf`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Die">
+
+    <title>dwarf::Die - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>dwarf</a></p><script>window.sidebarCurrent = {name: 'Die', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>dwarf</a>::<wbr><a class='struct' href=''>Die</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-1539' class='srclink' href='../src/dwarf/src/lib.rs.html#56-62' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Die&lt;'a&gt; {
+    pub offset: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>,
+    pub code: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a>,
+    pub tag: <a class='struct' href='../dwarf/constant/struct.DwTag.html' title='dwarf::constant::DwTag'>DwTag</a>,
+    pub children: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a>,
+    pub attributes: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='struct' href='../dwarf/struct.Attribute.html' title='dwarf::Attribute'>Attribute</a>&lt;'a&gt;&gt;,
+}</pre><h2 class='fields'>Fields</h2><span id='structfield.offset' class='structfield'><code>offset: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a></code>
+                           </span><span class='stab '></span><span id='structfield.code' class='structfield'><code>code: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u64.html'>u64</a></code>
+                           </span><span class='stab '></span><span id='structfield.tag' class='structfield'><code>tag: <a class='struct' href='../dwarf/constant/struct.DwTag.html' title='dwarf::constant::DwTag'>DwTag</a></code>
+                           </span><span class='stab '></span><span id='structfield.children' class='structfield'><code>children: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code>
+                           </span><span class='stab '></span><span id='structfield.attributes' class='structfield'><code>attributes: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='struct' href='../dwarf/struct.Attribute.html' title='dwarf::Attribute'>Attribute</a>&lt;'a&gt;&gt;</code>
+                           </span><span class='stab '></span><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl&lt;'a,&nbsp;'b&gt; <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-264' class='srclink' href='../src/dwarf/src/read.rs.html#186-216' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.read' class='method'><code>fn <a href='#method.read' class='fnname'>read</a>(r: &amp;mut <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.slice.html'>&amp;'a [</a><a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a><a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.slice.html'>]</a>, offset: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, unit: &amp;<a class='struct' href='../dwarf/struct.CompilationUnit.html' title='dwarf::CompilationUnit'>CompilationUnit</a>&lt;'b&gt;, abbrev_hash: &amp;<a class='struct' href='../dwarf/struct.AbbrevHash.html' title='dwarf::AbbrevHash'>AbbrevHash</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;,&nbsp;<a class='enum' href='../dwarf/enum.ReadError.html' title='dwarf::ReadError'>ReadError</a>&gt;</code></h4>
+</div><h3 class='impl'><span class='in-band'><code>impl&lt;'a,&nbsp;'b&gt; <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-515' class='srclink' href='../src/dwarf/src/write.rs.html#45-76' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.write_null' class='method'><code>fn <a href='#method.write_null' class='fnname'>write_null</a>(unit: &amp;mut <a class='struct' href='../dwarf/struct.CompilationUnit.html' title='dwarf::CompilationUnit'>CompilationUnit</a>&lt;'b&gt;) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/std/io/error/type.Result.html' title='std::io::error::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>&gt;</code></h4>
+<h4 id='method.write' class='method'><code>fn <a href='#method.write' class='fnname'>write</a>(&amp;self, unit: &amp;mut <a class='struct' href='../dwarf/struct.CompilationUnit.html' title='dwarf::CompilationUnit'>CompilationUnit</a>&lt;'b&gt;, abbrev_hash: &amp;<a class='struct' href='../dwarf/struct.AbbrevHash.html' title='dwarf::AbbrevHash'>AbbrevHash</a>) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='enum' href='../dwarf/enum.WriteError.html' title='dwarf::WriteError'>WriteError</a>&gt;</code></h4>
+</div><h3 class='impl'><span class='in-band'><code>impl&lt;'a&gt; <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1089' class='srclink' href='../src/dwarf/src/display.rs.html#109-118' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.display' class='method'><code>fn <a href='#method.display' class='fnname'>display</a>&lt;F:&nbsp;<a class='trait' href='../dwarf/display/trait.Formatter.html' title='dwarf::display::Formatter'>Formatter</a>&gt;(&amp;self, f: &amp;mut F) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.tuple.html'>()</a>,&nbsp;<a class='struct' href='https://doc.rust-lang.org/nightly/std/io/error/struct.Error.html' title='std::io::error::Error'>Error</a>&gt;</code></h4>
+</div><h3 class='impl'><span class='in-band'><code>impl&lt;'a&gt; <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1856' class='srclink' href='../src/dwarf/src/lib.rs.html#149-163' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.null' class='method'><code>fn <a href='#method.null' class='fnname'>null</a>(offset: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>) -&gt; Self</code></h4>
+<h4 id='method.is_null' class='method'><code>fn <a href='#method.is_null' class='fnname'>is_null</a>(&amp;self) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html' title='core::cmp::Eq'>Eq</a> for <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1491' class='srclink' href='../src/dwarf/src/lib.rs.html#55' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='core::cmp::PartialEq'>PartialEq</a> for <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1500' class='srclink' href='../src/dwarf/src/lib.rs.html#55' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='core::fmt::Debug'>Debug</a> for <a class='struct' href='../dwarf/struct.Die.html' title='dwarf::Die'>Die</a>&lt;'a&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a id='src-1528' class='srclink' href='../src/dwarf/src/lib.rs.html#55' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class='method'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='core::fmt::Result'>Result</a></code></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "dwarf";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
