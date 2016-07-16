@@ -1,7 +1,6 @@
 use std;
 use std::convert::From;
 use std::io::{Read, Write};
-use std::ops::{BitOrAssign, Not, Shl};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
 #[derive(Debug)]
@@ -16,16 +15,13 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
-    where
-        R: Read,
-        T: BitOrAssign + Shl<usize, Output=T> + From<u8>
-{
-    let mut result = zero;
+pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
+    let mut result = 0;
     let mut shift = 0;
+    let size = 64;
     loop {
         let byte = try!(r.read_u8());
-        result |= T::from(byte & 0x7f) << shift;
+        result |= u64::from(byte & 0x7f) << shift;
         if byte & 0x80 == 0 {
             return Ok(result);
         }
@@ -36,21 +32,18 @@ fn read_unsigned<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
     }
 }
 
-fn read_signed<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
-    where
-        R: Read,
-        T: Copy + BitOrAssign + Not<Output=T> + Shl<usize, Output=T> + From<u8>
-{
-    let mut result = zero;
+pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
+    let mut result = 0;
     let mut shift = 0;
+    let size = 64;
     loop {
         let byte = try!(r.read_u8());
-        result |= T::from(byte & 0x7f) << shift;
+        result |= i64::from(byte & 0x7f) << shift;
         shift += 7;
         if byte & 0x80 == 0 {
             if shift < size && (byte & 0x40) != 0 {
                 // Sign extend
-                result |= !zero << shift;
+                result |= !0 << shift;
             }
             return Ok(result);
         }
@@ -66,14 +59,6 @@ pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
             return Err(Error::Overflow);
     }
     Ok(val as u16)
-}
-
-pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
-    read_unsigned::<R, u64>(r, 64, 0u64)
-}
-
-pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
-    read_signed::<R, i64>(r, 64, 0i64)
 }
 
 pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
