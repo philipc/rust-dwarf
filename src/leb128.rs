@@ -72,7 +72,6 @@ pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
     read_signed::<R, i64>(r, 64, 0i64)
 }
 
-#[allow(dead_code)]
 pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
     loop {
         let byte = value as u8 & 0x7f;
@@ -85,7 +84,6 @@ pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
     }
 }
 
-#[allow(dead_code)]
 pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
     loop {
         let byte = value as u8 & 0x7f;
@@ -99,7 +97,6 @@ pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
     }
 }
 
-#[allow(dead_code)]
 pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
     write_u64(w, value as u64)
 }
