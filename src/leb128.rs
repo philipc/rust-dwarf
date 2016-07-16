@@ -61,7 +61,11 @@ fn read_signed<R, T>(r: &mut R, size: usize, zero: T) -> Result<T, Error>
 }
 
 pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
-    read_unsigned::<R, u16>(r, 16, 0u16)
+    let val = try!(read_u64(r));
+    if val > std::u16::MAX as u64 {
+            return Err(Error::Overflow);
+    }
+    Ok(val as u16)
 }
 
 pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
@@ -104,6 +108,7 @@ pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std;
 
     #[test]
     fn test_u16() {
@@ -133,7 +138,6 @@ mod test {
             (&[0x81,0x00][..], 1),
             (&[0x80,0x80,0x00][..], 0),
             (&[0xff,0xff,0x00][..], 0x3fff),
-            (&[0xff,0xff,0x7f][..], 0xffff),
         ] {
             assert_eq!(read_u16(&mut r).unwrap(), value);
             assert_eq!(r.len(), 0);
@@ -141,13 +145,23 @@ mod test {
 
         // Read overflow
         for &(mut r,) in &[
+            (&[0xff,0xff,0x07][..],),
+        ] {
+            match read_u16(&mut r) {
+                Err(Error::Overflow) => {},
+                otherwise => panic!("{:?}", otherwise),
+            };
+        }
+
+        // Read EOF
+        for &(mut r,) in &[
             (&[0x80,0x80,0x80][..],),
             (&[0xff,0xff,0xff][..],),
         ] {
-            assert!(match read_u16(&mut r) {
-                Err(Error::Overflow) => true,
-                _ => false,
-            });
+            match read_u16(&mut r) {
+                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
     }
 
@@ -191,10 +205,10 @@ mod test {
             (&[0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80][..],),
             (&[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff][..],),
         ] {
-            assert!(match read_u64(&mut r) {
-                Err(Error::Overflow) => true,
-                _ => false,
-            });
+            match read_u64(&mut r) {
+                Err(Error::Overflow) => {},
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
 
         // Read EOF
@@ -202,19 +216,19 @@ mod test {
             (&[0x80][..],),
             (&[0xff,0xff][..],),
         ] {
-            assert!(match read_u64(&mut r) {
-                Err(Error::Io(_)) => true,
-                _ => false,
-            });
+            match read_u64(&mut r) {
+                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
 
         // Write EOF
         {
             let mut buf = &mut [0; 2][..];
-            assert!(match write_u64(&mut buf, 0xffff) {
-                Err(_) => true,
-                _ => false,
-            });
+            match write_u64(&mut buf, 0xffff) {
+                Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::WriteZero),
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
     }
 
@@ -276,10 +290,10 @@ mod test {
             (&[0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80][..],),
             (&[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff][..],),
         ] {
-            assert!(match read_u64(&mut r) {
-                Err(Error::Overflow) => true,
-                _ => false,
-            });
+            match read_u64(&mut r) {
+                Err(Error::Overflow) => {},
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
 
         // Read EOF
@@ -287,19 +301,19 @@ mod test {
             (&[0x80][..],),
             (&[0xff,0xff][..],),
         ] {
-            assert!(match read_i64(&mut r) {
-                Err(Error::Io(_)) => true,
-                _ => false,
-            });
+            match read_i64(&mut r) {
+                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
 
         // Write EOF
         {
             let mut buf = &mut [0; 2][..];
-            assert!(match write_i64(&mut buf, 0xffff) {
-                Err(_) => true,
-                _ => false,
-            });
+            match write_i64(&mut buf, 0xffff) {
+                Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::WriteZero),
+                otherwise => panic!("{:?}", otherwise),
+            };
         }
     }
 }
