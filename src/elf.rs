@@ -15,7 +15,7 @@ impl std::convert::From<elf::ParseError> for ReadError {
     }
 }
 
-pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Sections, ReadError> {
+pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Sections<AnyEndian>, ReadError> {
     let mut file = try!(elf::File::open_path(path.as_ref()));
     let endian = match file.ehdr.data {
         elf::types::ELFDATA2LSB => AnyEndian::Little,

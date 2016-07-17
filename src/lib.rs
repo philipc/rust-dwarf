@@ -18,24 +18,24 @@ pub use read::ReadError;
 pub use write::WriteError;
 
 #[derive(Debug)]
-pub struct Sections {
-    pub endian: AnyEndian,
+pub struct Sections<E: Endian> {
+    pub endian: E,
     pub debug_info: Vec<u8>,
     pub debug_str: Vec<u8>,
     pub debug_abbrev: Vec<u8>,
 }
 
 #[derive(Debug)]
-pub struct CompilationUnitIterator<'a> {
-    endian: AnyEndian,
+pub struct CompilationUnitIterator<'a, E: Endian> {
+    endian: E,
     data: &'a [u8],
     offset: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CompilationUnit<'a> {
+pub struct CompilationUnit<'a, E: Endian> {
     pub offset: usize,
-    pub endian: AnyEndian,
+    pub endian: E,
     pub version: u16,
     pub address_size: u8,
     pub offset_size: u8,
@@ -44,10 +44,10 @@ pub struct CompilationUnit<'a> {
 }
 
 #[derive(Debug)]
-pub struct DieCursor<'a, 'entry, 'unit: 'a> {
+pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
     r: &'entry [u8],
     offset: usize,
-    unit: &'a CompilationUnit<'unit>,
+    unit: &'a CompilationUnit<'unit, E>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
 }
@@ -107,11 +107,11 @@ pub struct AbbrevAttribute {
     pub form: constant::DwForm,
 }
 
-impl<'a> Default for CompilationUnit<'a> {
+impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
     fn default() -> Self {
         CompilationUnit {
             offset: 0,
-            endian: AnyEndian::default(),
+            endian: Default::default(),
             version: 4,
             address_size: 4,
             offset_size: 4,
@@ -121,7 +121,7 @@ impl<'a> Default for CompilationUnit<'a> {
     }
 }
 
-impl<'a> CompilationUnit<'a> {
+impl<'a, E: Endian> CompilationUnit<'a, E> {
     fn base_header_len(&self) -> usize {
         // version + abbrev_offset + address_size
         2 + self.offset_size as usize + 1

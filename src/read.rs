@@ -35,19 +35,19 @@ impl std::convert::From<leb128::Error> for ReadError {
     }
 }
 
-impl Sections {
-    pub fn compilation_units(&self) -> CompilationUnitIterator {
+impl<E: Endian> Sections<E> {
+    pub fn compilation_units(&self) -> CompilationUnitIterator<E> {
         CompilationUnitIterator::new(self.endian, &*self.debug_info)
     }
 
-    pub fn abbrev<'a>(&self, unit: &CompilationUnit<'a>) -> Result<AbbrevHash, ReadError> {
+    pub fn abbrev<'a>(&self, unit: &CompilationUnit<'a, E>) -> Result<AbbrevHash, ReadError> {
         unit.abbrev(&*self.debug_abbrev)
     }
 }
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-impl<'a> CompilationUnitIterator<'a> {
-    fn new(endian: AnyEndian, data: &'a [u8]) -> Self {
+impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
+    fn new(endian: E, data: &'a [u8]) -> Self {
         CompilationUnitIterator {
             endian: endian,
             data: data,
@@ -59,7 +59,7 @@ impl<'a> CompilationUnitIterator<'a> {
         self.offset
     }
 
-    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a, E>>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
         }
@@ -72,12 +72,12 @@ impl<'a> CompilationUnitIterator<'a> {
     }
 }
 
-impl<'a> CompilationUnit<'a> {
+impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        endian: AnyEndian,
-    ) -> Result<CompilationUnit<'a>, ReadError> {
+        endian: E,
+    ) -> Result<CompilationUnit<'a, E>, ReadError> {
         let mut offset_size = 4;
         let mut len = try!(endian.read_u32(r)) as usize;
         if len == 0xffffffff {
@@ -123,7 +123,10 @@ impl<'a> CompilationUnit<'a> {
         AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
 
-    pub fn entries<'cursor>(&'a self, abbrev: &'cursor AbbrevHash) -> DieCursor<'cursor, 'a, 'a> {
+    pub fn entries<'cursor>(
+        &'a self,
+        abbrev: &'cursor AbbrevHash,
+    ) -> DieCursor<'cursor, 'a, 'a, E> {
         // Unfortunately, entry lifetime is restricted to that of self
         // because self.data might be owned
         DieCursor::new(self.data.deref(), self.data_offset(), self, abbrev)
@@ -133,7 +136,7 @@ impl<'a> CompilationUnit<'a> {
         &'a self,
         offset: usize,
         abbrev: &'cursor AbbrevHash,
-    ) -> Option<DieCursor<'cursor, 'a, 'a>> {
+    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
         let data_offset = self.data_offset();
         if offset < data_offset {
             return None;
@@ -147,8 +150,8 @@ impl<'a> CompilationUnit<'a> {
 }
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-impl<'a, 'entry, 'unit> DieCursor<'a, 'entry, 'unit> {
-    pub fn new(r: &'entry [u8], offset: usize, unit: &'a CompilationUnit<'unit>, abbrev: &'a AbbrevHash) -> Self {
+impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
+    pub fn new(r: &'entry [u8], offset: usize, unit: &'a CompilationUnit<'unit, E>, abbrev: &'a AbbrevHash) -> Self {
         DieCursor {
             r: r,
             offset: offset,
@@ -190,10 +193,10 @@ impl<'a, 'entry, 'unit> DieCursor<'a, 'entry, 'unit> {
 }
 
 impl<'a, 'b> Die<'a> {
-    pub fn read(
+    pub fn read<E: Endian>(
         r: &mut &'a [u8],
         offset: usize,
-        unit: &CompilationUnit<'b>,
+        unit: &CompilationUnit<'b, E>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
@@ -222,9 +225,9 @@ impl<'a, 'b> Die<'a> {
 }
 
 impl<'a, 'b> Attribute<'a> {
-    pub fn read(
+    pub fn read<E: Endian>(
         r: &mut &'a [u8],
-        unit: &CompilationUnit<'b>,
+        unit: &CompilationUnit<'b, E>,
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
         let data = try!(AttributeData::read(r, unit, abbrev.form));
@@ -236,9 +239,9 @@ impl<'a, 'b> Attribute<'a> {
 }
 
 impl<'a, 'b> AttributeData<'a> {
-    pub fn read(
+    pub fn read<E: Endian>(
         r: &mut &'a [u8],
-        unit: &CompilationUnit<'b>,
+        unit: &CompilationUnit<'b, E>,
         form: constant::DwForm,
     ) -> Result<AttributeData<'a>, ReadError> {
         let data = match form {
@@ -328,7 +331,7 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
     Ok(val)
 }
 
-fn read_offset<R: Read>(r: &mut R, endian: AnyEndian, offset_size: u8) -> Result<u64, ReadError> {
+fn read_offset<R: Read, E: Endian>(r: &mut R, endian: E, offset_size: u8) -> Result<u64, ReadError> {
     let val = match offset_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
@@ -337,7 +340,7 @@ fn read_offset<R: Read>(r: &mut R, endian: AnyEndian, offset_size: u8) -> Result
     Ok(val)
 }
 
-fn read_address<R: Read>(r: &mut R, endian: AnyEndian, address_size: u8) -> Result<u64, ReadError> {
+fn read_address<R: Read, E: Endian>(r: &mut R, endian: E, address_size: u8) -> Result<u64, ReadError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),

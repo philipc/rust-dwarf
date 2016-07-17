@@ -18,7 +18,7 @@ impl std::convert::From<std::io::Error> for WriteError {
     }
 }
 
-impl<'a> CompilationUnit<'a> {
+impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
         let len = self.base_len();
         match self.offset_size {
@@ -43,14 +43,14 @@ impl<'a> CompilationUnit<'a> {
 }
 
 impl<'a, 'b> Die<'a> {
-    pub fn write_null(unit: &mut CompilationUnit<'b>) -> std::io::Result<()> {
+    pub fn write_null<E: Endian>(unit: &mut CompilationUnit<'b, E>) -> std::io::Result<()> {
         let w = unit.data.to_mut();
         leb128::write_u64(w, 0)
     }
 
-    pub fn write(
+    pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b>,
+        unit: &mut CompilationUnit<'b, E>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<(), WriteError> {
         if self.code == 0 {
@@ -76,9 +76,9 @@ impl<'a, 'b> Die<'a> {
 }
 
 impl<'a, 'b> Attribute<'a> {
-    pub fn write(
+    pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b>,
+        unit: &mut CompilationUnit<'b, E>,
         abbrev: &AbbrevAttribute,
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
@@ -91,9 +91,9 @@ impl<'a, 'b> Attribute<'a> {
 
 #[cfg_attr(feature = "clippy", allow(match_same_arms))]
 impl<'a, 'b> AttributeData<'a> {
-    pub fn write(
+    pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b>,
+        unit: &mut CompilationUnit<'b, E>,
         form: constant::DwForm,
         indirect: bool,
     ) -> Result<(), WriteError> {
@@ -186,7 +186,7 @@ impl<'a, 'b> AttributeData<'a> {
     }
 }
 
-fn write_offset<W: Write>(w: &mut W, endian: AnyEndian, offset_size: u8, val: u64) -> Result<(), WriteError> {
+fn write_offset<W: Write, E: Endian>(w: &mut W, endian: E, offset_size: u8, val: u64) -> Result<(), WriteError> {
     match offset_size {
         4 => try!(endian.write_u32(w, val as u32)),
         8 => try!(endian.write_u64(w, val)),
@@ -195,7 +195,7 @@ fn write_offset<W: Write>(w: &mut W, endian: AnyEndian, offset_size: u8, val: u6
     Ok(())
 }
 
-fn write_address<W: Write>(w: &mut W, endian: AnyEndian, address_size: u8, val: u64) -> Result<(), WriteError> {
+fn write_address<W: Write, E: Endian>(w: &mut W, endian: E, address_size: u8, val: u64) -> Result<(), WriteError> {
     match address_size {
         4 => try!(endian.write_u32(w, val as u32)),
         8 => try!(endian.write_u64(w, val)),

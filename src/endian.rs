@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use byteorder;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
-pub trait Endian {
+pub trait Endian: Copy {
     fn read_u16<R: Read>(&self, r: &mut R) -> Result<u16, std::io::Error>;
     fn read_u32<R: Read>(&self, r: &mut R) -> Result<u32, std::io::Error>;
     fn read_u64<R: Read>(&self, r: &mut R) -> Result<u64, std::io::Error>;
@@ -12,6 +12,7 @@ pub trait Endian {
     fn write_u64<W: Write>(&self, w: &mut W, val: u64) -> Result<(), std::io::Error>;
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct LittleEndian;
 
 impl Endian for LittleEndian {
@@ -40,6 +41,7 @@ impl Endian for LittleEndian {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct BigEndian;
 
 impl Endian for BigEndian {
