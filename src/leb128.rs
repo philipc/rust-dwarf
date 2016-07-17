@@ -1,56 +1,13 @@
+extern crate leb128;
+
 use std;
-use std::convert::From;
 use std::io::{Read, Write};
-use byteorder::{ReadBytesExt, WriteBytesExt};
 
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Overflow,
-}
-
-impl std::convert::From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
-    let mut result = 0;
-    let mut shift = 0;
-    loop {
-        let byte = try!(r.read_u8());
-        if shift == 63 && byte != 0x00 && byte != 0x01 {
-            return Err(Error::Overflow);
-        }
-        result |= u64::from(byte & 0x7f) << shift;
-        if byte & 0x80 == 0 {
-            return Ok(result);
-        }
-        shift += 7;
-    }
-}
-
-pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
-    let mut result = 0;
-    let mut shift = 0;
-    let size = 64;
-    loop {
-        let byte = try!(r.read_u8());
-        if shift == 63 && byte != 0x00 && byte != 0x7f {
-            return Err(Error::Overflow);
-        }
-        result |= i64::from(byte & 0x7f) << shift;
-        shift += 7;
-        if byte & 0x80 == 0 {
-            if shift < size && (byte & 0x40) != 0 {
-                // Sign extend
-                result |= !0 << shift;
-            }
-            return Ok(result);
-        }
-    }
-}
+pub use self::leb128::read::Error;
+pub use self::leb128::read::unsigned as read_u64;
+pub use self::leb128::read::signed as read_i64;
+pub use self::leb128::write::unsigned as write_u64;
+pub use self::leb128::write::signed as write_i64;
 
 pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
     let val = try!(read_u64(r));
@@ -58,31 +15,6 @@ pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
             return Err(Error::Overflow);
     }
     Ok(val as u16)
-}
-
-pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
-    loop {
-        let byte = value as u8 & 0x7f;
-        value >>= 7;
-        if value == 0 {
-            try!(w.write_u8(byte));
-            return Ok(());
-        }
-        try!(w.write_u8(byte | 0x80));
-    }
-}
-
-pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
-    loop {
-        let byte = value as u8 & 0x7f;
-        let sign = (byte & 0x40) != 0;
-        value >>= 7;
-        if value == 0 && !sign || value == -1 && sign {
-            try!(w.write_u8(byte));
-            return Ok(());
-        }
-        try!(w.write_u8(byte | 0x80));
-    }
 }
 
 pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
@@ -143,7 +75,7 @@ mod test {
             (&[0xff,0xff,0xff][..],),
         ] {
             match read_u16(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::IoError(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -202,7 +134,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_u64(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::IoError(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -287,7 +219,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_i64(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::IoError(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
                 otherwise => panic!("{:?}", otherwise),
             };
         }

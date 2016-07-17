@@ -29,7 +29,7 @@ impl std::convert::From<std::str::Utf8Error> for ReadError {
 impl std::convert::From<leb128::Error> for ReadError {
     fn from(e: leb128::Error) -> Self {
         match e {
-            leb128::Error::Io(e) => ReadError::Io(e),
+            leb128::Error::IoError(e) => ReadError::Io(e),
             leb128::Error::Overflow => ReadError::Invalid("LEB128 overflow".to_string()),
         }
     }
