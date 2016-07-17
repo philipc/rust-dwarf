@@ -66,6 +66,82 @@ fn compilation_unit_64() {
 }
 
 #[test]
+fn die_cursor() {
+    let mut abbrev_hash = AbbrevHash::new();
+    abbrev_hash.insert(Abbrev {
+        code: 1,
+        tag: DW_TAG_namespace,
+        children: true,
+        attributes: vec![
+            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_string },
+        ],
+    });
+    abbrev_hash.insert(Abbrev {
+        code: 2,
+        tag: DW_TAG_namespace,
+        children: false,
+        attributes: vec![
+            AbbrevAttribute { at: DW_AT_name, form: DW_FORM_string },
+        ],
+    });
+
+    fn entry<'a>(name: &'a str, children: bool) -> Die<'a> {
+        Die {
+            offset: 0,
+            code: if children { 1 } else { 2},
+            tag: DW_TAG_namespace,
+            children: children,
+            attributes: vec![
+                Attribute { at: DW_AT_name, data: AttributeData::String(name) },
+            ],
+        }
+    }
+
+    let mut write_val = [
+        entry("0", true),
+            entry("1", false),
+            entry("2", true),
+                Die::null(0),
+            entry("4", true),
+                entry("5", false),
+                Die::null(0),
+            entry("7", true),
+                entry("8", true),
+                    entry("9", true),
+                        Die::null(0),
+                    Die::null(0),
+                Die::null(0),
+            entry("13", false),
+            Die::null(0),
+        entry("15", false),
+    ];
+    let mut unit = CompilationUnit { endian: LittleEndian, ..Default::default() };
+    for mut entry in &mut write_val {
+        entry.offset = entry.write(&mut unit, &abbrev_hash).unwrap();
+    }
+
+    let mut entries = unit.entries(&abbrev_hash);
+    for i in 0..write_val.len() {
+        match entries.next() {
+            Ok(Some(read_val)) => assert_eq!(read_val, write_val[i]),
+            _ => panic!(),
+        }
+    }
+    assert!(entries.next().unwrap().is_none());
+
+    let mut entries = unit.entries(&abbrev_hash);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[0]);
+    assert_eq!(entries.next().unwrap().unwrap(), write_val[1]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[2]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[4]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[7]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[13]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[14]);
+    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[15]);
+    assert!(entries.next_sibling().unwrap().is_none());
+}
+
+#[test]
 fn die() {
     let mut abbrev_hash = AbbrevHash::new();
     let code = 1;

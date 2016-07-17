@@ -144,6 +144,10 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn data_offset(&self) -> usize {
         self.offset + self.total_header_len()
     }
+
+    pub fn data_end_offset(&self) -> usize {
+        self.data_offset() + self.data.len()
+    }
 }
 
 impl<'a> Die<'a> {

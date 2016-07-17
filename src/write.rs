@@ -52,10 +52,11 @@ impl<'a, 'b> Die<'a> {
         &self,
         unit: &mut CompilationUnit<'b, E>,
         abbrev_hash: &AbbrevHash,
-    ) -> Result<(), WriteError> {
+    ) -> Result<usize, WriteError> {
+        let offset = unit.data_end_offset();
         if self.code == 0 {
             try!(Die::write_null(unit));
-            return Ok(());
+            return Ok(offset);
         }
         let abbrev = match abbrev_hash.get(self.code) {
             Some(abbrev) => abbrev,
@@ -71,7 +72,7 @@ impl<'a, 'b> Die<'a> {
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
             try!(attribute.write(unit, abbrev_attribute));
         }
-        Ok(())
+        Ok(offset)
     }
 }
 
