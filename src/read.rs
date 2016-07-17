@@ -179,13 +179,17 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
     }
 
     pub fn next_sibling(&mut self) -> Result<Option<Die<'entry>>, ReadError> {
-        if self.next_child {
-            self.next_child = false;
-            loop {
-                match try!(self.next_sibling()) {
-                    Some(die) => if die.is_null() { break; },
-                    None => return Ok(None),
-                }
+        let mut depth = if self.next_child { 1 } else { 0 };
+        while depth > 0 {
+            match try!(self.next()) {
+                Some(die) => {
+                    if die.is_null() {
+                        depth -= 1;
+                    } else if self.next_child {
+                        depth += 1;
+                    }
+                },
+                None => return Ok(None),
             }
         }
         self.next()
