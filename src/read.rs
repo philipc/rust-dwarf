@@ -123,14 +123,17 @@ impl<'a> CompilationUnit<'a> {
         AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
 
-    pub fn entries(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'a>
-    {
+    pub fn entries<'cursor>(&'a self, abbrev: &'cursor AbbrevHash) -> DieCursor<'cursor, 'a, 'a> {
         // Unfortunately, entry lifetime is restricted to that of self
         // because self.data might be owned
         DieCursor::new(self.data.deref(), self.data_offset(), self, abbrev)
     }
 
-    pub fn entry(&'a self, offset: usize, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a, 'a>> {
+    pub fn entry<'cursor>(
+        &'a self,
+        offset: usize,
+        abbrev: &'cursor AbbrevHash,
+    ) -> Option<DieCursor<'cursor, 'a, 'a>> {
         let data_offset = self.data_offset();
         if offset < data_offset {
             return None;
@@ -144,8 +147,8 @@ impl<'a> CompilationUnit<'a> {
 }
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-impl<'a, 'entry> DieCursor<'a, 'entry> {
-    pub fn new(r: &'entry [u8], offset: usize, unit: &'a CompilationUnit<'entry>, abbrev: &'a AbbrevHash) -> Self {
+impl<'a, 'entry, 'unit> DieCursor<'a, 'entry, 'unit> {
+    pub fn new(r: &'entry [u8], offset: usize, unit: &'a CompilationUnit<'unit>, abbrev: &'a AbbrevHash) -> Self {
         DieCursor {
             r: r,
             offset: offset,

@@ -44,10 +44,10 @@ pub struct CompilationUnit<'a> {
 }
 
 #[derive(Debug)]
-pub struct DieCursor<'a, 'entry> {
+pub struct DieCursor<'a, 'entry, 'unit: 'a> {
     r: &'entry [u8],
     offset: usize,
-    unit: &'a CompilationUnit<'a>,
+    unit: &'a CompilationUnit<'unit>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
 }
