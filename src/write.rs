@@ -186,7 +186,7 @@ impl<'a, 'b> AttributeData<'a> {
     }
 }
 
-fn write_offset<W: Write>(w: &mut W, endian: Endian, offset_size: u8, val: u64) -> Result<(), WriteError> {
+fn write_offset<W: Write>(w: &mut W, endian: AnyEndian, offset_size: u8, val: u64) -> Result<(), WriteError> {
     match offset_size {
         4 => try!(endian.write_u32(w, val as u32)),
         8 => try!(endian.write_u64(w, val)),
@@ -195,7 +195,7 @@ fn write_offset<W: Write>(w: &mut W, endian: Endian, offset_size: u8, val: u64) 
     Ok(())
 }
 
-fn write_address<W: Write>(w: &mut W, endian: Endian, address_size: u8, val: u64) -> Result<(), WriteError> {
+fn write_address<W: Write>(w: &mut W, endian: AnyEndian, address_size: u8, val: u64) -> Result<(), WriteError> {
     match address_size {
         4 => try!(endian.write_u32(w, val as u32)),
         8 => try!(endian.write_u64(w, val)),

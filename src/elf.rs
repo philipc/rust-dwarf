@@ -2,7 +2,7 @@ extern crate elf;
 
 use std;
 
-use super::{ReadError, Endian, Sections};
+use super::{ReadError, AnyEndian, Sections};
 
 impl std::convert::From<elf::ParseError> for ReadError {
     fn from(e: elf::ParseError) -> Self {
@@ -18,8 +18,8 @@ impl std::convert::From<elf::ParseError> for ReadError {
 pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Sections, ReadError> {
     let mut file = try!(elf::File::open_path(path.as_ref()));
     let endian = match file.ehdr.data {
-        elf::types::ELFDATA2LSB => Endian::Little,
-        elf::types::ELFDATA2MSB => Endian::Big,
+        elf::types::ELFDATA2LSB => AnyEndian::Little,
+        elf::types::ELFDATA2MSB => AnyEndian::Big,
         data => return Err(ReadError::Unsupported(format!("elf data: {}", data.0))),
     };
     let debug_info = try!(get_section(&mut file, ".debug_info")).data;

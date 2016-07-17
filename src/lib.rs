@@ -13,13 +13,13 @@ pub mod constant;
 pub mod display;
 pub mod elf;
 
-pub use endian::Endian;
+pub use endian::{AnyEndian, Endian, LittleEndian, BigEndian, NativeEndian};
 pub use read::ReadError;
 pub use write::WriteError;
 
 #[derive(Debug)]
 pub struct Sections {
-    pub endian: Endian,
+    pub endian: AnyEndian,
     pub debug_info: Vec<u8>,
     pub debug_str: Vec<u8>,
     pub debug_abbrev: Vec<u8>,
@@ -27,7 +27,7 @@ pub struct Sections {
 
 #[derive(Debug)]
 pub struct CompilationUnitIterator<'a> {
-    endian: Endian,
+    endian: AnyEndian,
     data: &'a [u8],
     offset: usize,
 }
@@ -35,7 +35,7 @@ pub struct CompilationUnitIterator<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompilationUnit<'a> {
     pub offset: usize,
-    pub endian: Endian,
+    pub endian: AnyEndian,
     pub version: u16,
     pub address_size: u8,
     pub offset_size: u8,
@@ -111,7 +111,7 @@ impl<'a> Default for CompilationUnit<'a> {
     fn default() -> Self {
         CompilationUnit {
             offset: 0,
-            endian: Endian::default(),
+            endian: AnyEndian::default(),
             version: 4,
             address_size: 4,
             offset_size: 4,

@@ -4,7 +4,7 @@ use constant::*;
 #[test]
 fn compilation_unit_32() {
     let offset = 0;
-    let endian = Endian::Little;
+    let endian = AnyEndian::Little;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
         offset: offset,
@@ -36,7 +36,7 @@ fn compilation_unit_32() {
 #[test]
 fn compilation_unit_64() {
     let offset = 0;
-    let endian = Endian::Little;
+    let endian = AnyEndian::Little;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
         offset: offset,
@@ -87,7 +87,7 @@ fn die() {
         ],
     };
 
-    let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
+    let mut unit = CompilationUnit { endian: AnyEndian::Little, ..Default::default() };
     write_val.write(&mut unit, &abbrev_hash).unwrap();
 
     let mut r = unit.data();
@@ -106,7 +106,7 @@ fn attribute() {
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut unit = CompilationUnit { endian: Endian::Little, ..Default::default() };
+    let mut unit = CompilationUnit { endian: AnyEndian::Little, ..Default::default() };
     write_val.write(&mut unit, &abbrev).unwrap();
 
     let mut r = unit.data();
@@ -120,7 +120,7 @@ fn attribute() {
 #[test]
 fn attribute_data() {
     let mut unit = CompilationUnit {
-        endian: Endian::Little,
+        endian: AnyEndian::Little,
         ..Default::default()
     };
 

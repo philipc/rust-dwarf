@@ -47,7 +47,7 @@ impl Sections {
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a> CompilationUnitIterator<'a> {
-    fn new(endian: Endian, data: &'a [u8]) -> Self {
+    fn new(endian: AnyEndian, data: &'a [u8]) -> Self {
         CompilationUnitIterator {
             endian: endian,
             data: data,
@@ -76,7 +76,7 @@ impl<'a> CompilationUnit<'a> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        endian: Endian,
+        endian: AnyEndian,
     ) -> Result<CompilationUnit<'a>, ReadError> {
         let mut offset_size = 4;
         let mut len = try!(endian.read_u32(r)) as usize;
@@ -328,7 +328,7 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
     Ok(val)
 }
 
-fn read_offset<R: Read>(r: &mut R, endian: Endian, offset_size: u8) -> Result<u64, ReadError> {
+fn read_offset<R: Read>(r: &mut R, endian: AnyEndian, offset_size: u8) -> Result<u64, ReadError> {
     let val = match offset_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
@@ -337,7 +337,7 @@ fn read_offset<R: Read>(r: &mut R, endian: Endian, offset_size: u8) -> Result<u6
     Ok(val)
 }
 
-fn read_address<R: Read>(r: &mut R, endian: Endian, address_size: u8) -> Result<u64, ReadError> {
+fn read_address<R: Read>(r: &mut R, endian: AnyEndian, address_size: u8) -> Result<u64, ReadError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
