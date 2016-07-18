@@ -4,16 +4,19 @@ use constant::*;
 #[test]
 fn compilation_unit_32() {
     let offset = 0;
+    let offset_size = 4;
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
         offset: offset,
-        endian: endian,
-        version: 4,
-        address_size: 4,
-        offset_size: 4,
-        abbrev_offset: 0x12,
-        data: From::from(&data[..]),
+        common: UnitCommon {
+            endian: endian,
+            version: 4,
+            address_size: 4,
+            offset_size: offset_size,
+            abbrev_offset: 0x12,
+            data: From::from(&data[..]),
+        },
     };
 
     let mut buf = Vec::new();
@@ -36,16 +39,19 @@ fn compilation_unit_32() {
 #[test]
 fn compilation_unit_64() {
     let offset = 0;
+    let offset_size = 8;
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
         offset: offset,
-        endian: endian,
-        version: 4,
-        address_size: 4,
-        offset_size: 8,
-        abbrev_offset: 0x12,
-        data: From::from(&data[..]),
+        common: UnitCommon {
+            endian: endian,
+            version: 4,
+            address_size: 4,
+            offset_size: offset_size,
+            abbrev_offset: 0x12,
+            data: From::from(&data[..]),
+        },
     };
 
     let mut buf = Vec::new();
@@ -59,6 +65,84 @@ fn compilation_unit_64() {
         0x04, 0x00,
         0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x04,
+        0x01, 0x23, 0x45, 0x67
+    ]);
+    assert_eq!(r.len(), 0);
+    assert_eq!(read_val, write_val);
+}
+
+#[test]
+fn type_unit_32() {
+    let offset = 0;
+    let offset_size = 4;
+    let endian = LittleEndian;
+    let data = [0x01, 0x23, 0x45, 0x67];
+    let write_val = TypeUnit {
+        offset: offset,
+        type_signature: 0x0123456789abcdef,
+        type_offset: 0x02,
+        common: UnitCommon {
+            endian: endian,
+            version: 4,
+            address_size: 4,
+            offset_size: offset_size,
+            abbrev_offset: 0x12,
+            data: From::from(&data[..]),
+        },
+    };
+
+    let mut buf = Vec::new();
+    write_val.write(&mut buf).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = TypeUnit::read(&mut r, offset, endian).unwrap();
+
+    assert_eq!(&buf[..], [
+        0x17, 0x00, 0x00, 0x00,
+        0x04, 0x00,
+        0x12, 0x00, 0x00, 0x00,
+        0x04,
+        0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
+        0x02, 0x00, 0x00, 0x00,
+        0x01, 0x23, 0x45, 0x67
+    ]);
+    assert_eq!(r.len(), 0);
+    assert_eq!(read_val, write_val);
+}
+
+#[test]
+fn type_unit_64() {
+    let offset = 0;
+    let offset_size = 8;
+    let endian = LittleEndian;
+    let data = [0x01, 0x23, 0x45, 0x67];
+    let write_val = TypeUnit {
+        offset: offset,
+        type_signature: 0x0123456789abcdef,
+        type_offset: 0x02,
+        common: UnitCommon {
+            endian: endian,
+            version: 4,
+            address_size: 4,
+            offset_size: offset_size,
+            abbrev_offset: 0x12,
+            data: From::from(&data[..]),
+        },
+    };
+
+    let mut buf = Vec::new();
+    write_val.write(&mut buf).unwrap();
+
+    let mut r = &buf[..];
+    let read_val = TypeUnit::read(&mut r, offset, endian).unwrap();
+
+    assert_eq!(buf, vec![
+        0xff, 0xff, 0xff, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x00,
+        0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04,
+        0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x01, 0x23, 0x45, 0x67
     ]);
     assert_eq!(r.len(), 0);
@@ -115,12 +199,13 @@ fn die_cursor() {
             Die::null(0),
         entry("15", false),
     ];
-    let mut unit = CompilationUnit { endian: LittleEndian, ..Default::default() };
+    let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
     for mut entry in &mut write_val {
-        entry.offset = entry.write(&mut unit, &abbrev_hash).unwrap();
+        entry.offset = unit.len();
+        entry.write(&mut unit, &abbrev_hash).unwrap();
     }
 
-    let mut entries = unit.entries(&abbrev_hash);
+    let mut entries = unit.entries(0, &abbrev_hash);
     for i in 0..write_val.len() {
         match entries.next() {
             Ok(Some(read_val)) => assert_eq!(read_val, write_val[i]),
@@ -129,7 +214,7 @@ fn die_cursor() {
     }
     assert!(entries.next().unwrap().is_none());
 
-    let mut entries = unit.entries(&abbrev_hash);
+    let mut entries = unit.entries(0, &abbrev_hash);
     assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[0]);
     assert_eq!(entries.next().unwrap().unwrap(), write_val[1]);
     assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[2]);
@@ -163,7 +248,7 @@ fn die() {
         ],
     };
 
-    let mut unit = CompilationUnit { endian: LittleEndian, ..Default::default() };
+    let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
     write_val.write(&mut unit, &abbrev_hash).unwrap();
 
     let mut r = unit.data();
@@ -182,7 +267,7 @@ fn attribute() {
         data: AttributeData::Ref(0x01234567),
     };
 
-    let mut unit = CompilationUnit { endian: LittleEndian, ..Default::default() };
+    let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
     write_val.write(&mut unit, &abbrev).unwrap();
 
     let mut r = unit.data();
@@ -195,10 +280,7 @@ fn attribute() {
 
 #[test]
 fn attribute_data() {
-    let mut unit = CompilationUnit {
-        endian: LittleEndian,
-        ..Default::default()
-    };
+    let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
 
     unit.address_size = 4;
     unit.offset_size = 4;
@@ -257,7 +339,7 @@ fn attribute_data() {
 }
 
 fn attribute_data_inner<'a, 'b, E: Endian>(
-    unit: &mut CompilationUnit<'a, E>,
+    unit: &mut UnitCommon<'a, E>,
     write_val: &AttributeData<'b>,
     form: DwForm, expect: &[u8],
 ) {

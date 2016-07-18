@@ -10,7 +10,7 @@ fn read(b: &mut test::Bencher) {
     b.iter(|| {
         let mut units = sections.compilation_units();
         while let Some(unit) = units.next().unwrap() {
-            let abbrev = sections.abbrev(&unit).unwrap();
+            let abbrev = sections.abbrev(&unit.common).unwrap();
             let mut entries = unit.entries(&abbrev);
             while let Some(_) = entries.next().unwrap() {
             }
@@ -27,7 +27,7 @@ fn display(b: &mut test::Bencher) {
     b.iter(|| {
         let mut units = sections.compilation_units();
         while let Some(unit) = units.next().unwrap() {
-            let abbrev = sections.abbrev(&unit).unwrap();
+            let abbrev = sections.abbrev(&unit.common).unwrap();
             unit.entries(&abbrev).display(&mut f).unwrap();
         }
     });

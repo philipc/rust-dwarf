@@ -40,7 +40,11 @@ impl<E: Endian> Sections<E> {
         CompilationUnitIterator::new(self.endian, &*self.debug_info)
     }
 
-    pub fn abbrev<'a>(&self, unit: &CompilationUnit<'a, E>) -> Result<AbbrevHash, ReadError> {
+    pub fn type_units(&self) -> TypeUnitIterator<E> {
+        TypeUnitIterator::new(self.endian, &*self.debug_types)
+    }
+
+    pub fn abbrev<'a>(&self, unit: &UnitCommon<'a, E>) -> Result<AbbrevHash, ReadError> {
         unit.abbrev(&*self.debug_abbrev)
     }
 }
@@ -72,48 +76,157 @@ impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
     }
 }
 
+#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
+impl<'a, E: Endian> TypeUnitIterator<'a, E> {
+    fn new(endian: E, data: &'a [u8]) -> Self {
+        TypeUnitIterator {
+            endian: endian,
+            data: data,
+            offset: 0,
+        }
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn next(&mut self) -> Result<Option<TypeUnit<'a, E>>, ReadError> {
+        if self.data.len() == 0 {
+            return Ok(None);
+        }
+
+        let mut r = self.data;
+        let unit = try!(TypeUnit::read(&mut r, self.offset, self.endian));
+        self.offset += self.data.len() - r.len();
+        self.data = r;
+        Ok(Some(unit))
+    }
+}
+
 impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
         endian: E,
     ) -> Result<CompilationUnit<'a, E>, ReadError> {
+        let (mut common, data) = try!(UnitCommon::read(r, endian));
+        common.data = From::from(data);
+        Ok(CompilationUnit {
+            offset: offset,
+            common: common,
+        })
+    }
+
+    pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
+        self.common.abbrev(debug_abbrev)
+    }
+
+    pub fn entries<'cursor>(
+        &'a self,
+        abbrev: &'cursor AbbrevHash,
+    ) -> DieCursor<'cursor, 'a, 'a, E> {
+        self.common.entries(self.data_offset(), abbrev)
+    }
+
+    pub fn entry<'cursor>(
+        &'a self,
+        offset: usize,
+        abbrev: &'cursor AbbrevHash,
+    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        self.common.entry(self.data_offset(), offset, abbrev)
+    }
+}
+
+impl<'a, E: Endian> TypeUnit<'a, E> {
+    pub fn read(
+        r: &mut &'a [u8],
+        offset: usize,
+        endian: E,
+    ) -> Result<TypeUnit<'a, E>, ReadError> {
+        let (mut common, mut data) = try!(UnitCommon::read(r, endian));
+
+        // Read the remaining fields out of data
+        let type_signature = try!(endian.read_u64(&mut data));
+        let type_offset = try!(read_offset(&mut data, endian, common.offset_size));
+        common.data = From::from(data);
+
+        Ok(TypeUnit {
+            offset: offset,
+            type_signature: type_signature,
+            type_offset: type_offset,
+            common: common,
+        })
+    }
+
+    pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
+        self.common.abbrev(debug_abbrev)
+    }
+
+    pub fn entries<'cursor>(
+        &'a self,
+        abbrev: &'cursor AbbrevHash,
+    ) -> DieCursor<'cursor, 'a, 'a, E> {
+        self.common.entries(self.data_offset(), abbrev, )
+    }
+
+    pub fn entry<'cursor>(
+        &'a self,
+        offset: usize,
+        abbrev: &'cursor AbbrevHash,
+    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        self.common.entry(self.data_offset(), offset, abbrev)
+    }
+
+    pub fn type_entry<'cursor>(
+        &'a self,
+        abbrev: &'cursor AbbrevHash,
+    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        self.common.entry(self.data_offset(), self.type_offset as usize, abbrev)
+    }
+}
+
+impl<'a, E: Endian> UnitCommon<'a, E> {
+    pub fn read(
+        r: &mut &'a [u8],
+        endian: E,
+    ) -> Result<(UnitCommon<'a, E>, &'a [u8]), ReadError> {
         let mut offset_size = 4;
         let mut len = try!(endian.read_u32(r)) as usize;
         if len == 0xffffffff {
             offset_size = 8;
             len = try!(endian.read_u64(r)) as usize;
         } else if len >= 0xfffffff0 {
-            return Err(ReadError::Unsupported(format!("compilation unit length {}", len)));
+            return Err(ReadError::Unsupported(format!("unit length {}", len)));
         }
         if len > r.len() {
-            return Err(ReadError::Invalid(format!("compilation unit length {}", len)));
+            return Err(ReadError::Invalid(format!("unit length {}", len)));
         }
 
-        // Tell the caller we read the entire length, even if we don't parse it all now
+        // Tell the iterator we read the entire length, even if we don't parse it all now
         let mut data = &r[..len];
         *r = &r[len..];
 
         let version = try!(endian.read_u16(&mut data));
         // TODO: is this correct?
         if version < 2 || version > 4 {
-            return Err(ReadError::Unsupported(format!("compilation unit version {}", version)));
+            return Err(ReadError::Unsupported(format!("unit version {}", version)));
         }
 
         let abbrev_offset = try!(read_offset(&mut data, endian, offset_size));
         let address_size = try!(data.read_u8());
 
-        Ok(CompilationUnit {
-            offset: offset,
+        Ok((UnitCommon {
             endian: endian,
             version: version,
             address_size: address_size,
             offset_size: offset_size,
             abbrev_offset: abbrev_offset,
-            data: From::from(data),
-        })
+            data: Default::default(),
+        }, data))
     }
+}
 
+impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
         let offset = self.abbrev_offset as usize;
         let len = debug_abbrev.len();
@@ -125,19 +238,20 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
 
     pub fn entries<'cursor>(
         &'a self,
+        data_offset: usize,
         abbrev: &'cursor AbbrevHash,
     ) -> DieCursor<'cursor, 'a, 'a, E> {
         // Unfortunately, entry lifetime is restricted to that of self
         // because self.data might be owned
-        DieCursor::new(self.data.deref(), self.data_offset(), self, abbrev)
+        DieCursor::new(self.data.deref(), data_offset, self, abbrev)
     }
 
     pub fn entry<'cursor>(
         &'a self,
+        data_offset: usize,
         offset: usize,
         abbrev: &'cursor AbbrevHash,
     ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
-        let data_offset = self.data_offset();
         if offset < data_offset {
             return None;
         }
@@ -151,7 +265,12 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
 
 #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
-    pub fn new(r: &'entry [u8], offset: usize, unit: &'a CompilationUnit<'unit, E>, abbrev: &'a AbbrevHash) -> Self {
+    pub fn new(
+        r: &'entry [u8],
+        offset: usize,
+        unit: &'a UnitCommon<'unit, E>,
+        abbrev: &'a AbbrevHash
+    ) -> Self {
         DieCursor {
             r: r,
             offset: offset,
@@ -200,7 +319,7 @@ impl<'a, 'b> Die<'a> {
     pub fn read<E: Endian>(
         r: &mut &'a [u8],
         offset: usize,
-        unit: &CompilationUnit<'b, E>,
+        unit: &UnitCommon<'b, E>,
         abbrev_hash: &AbbrevHash,
     ) -> Result<Die<'a>, ReadError> {
         let code = try!(leb128::read_u64(r));
@@ -231,7 +350,7 @@ impl<'a, 'b> Die<'a> {
 impl<'a, 'b> Attribute<'a> {
     pub fn read<E: Endian>(
         r: &mut &'a [u8],
-        unit: &CompilationUnit<'b, E>,
+        unit: &UnitCommon<'b, E>,
         abbrev: &AbbrevAttribute,
     ) -> Result<Attribute<'a>, ReadError> {
         let data = try!(AttributeData::read(r, unit, abbrev.form));
@@ -245,7 +364,7 @@ impl<'a, 'b> Attribute<'a> {
 impl<'a, 'b> AttributeData<'a> {
     pub fn read<E: Endian>(
         r: &mut &'a [u8],
-        unit: &CompilationUnit<'b, E>,
+        unit: &UnitCommon<'b, E>,
         form: constant::DwForm,
     ) -> Result<AttributeData<'a>, ReadError> {
         let data = match form {

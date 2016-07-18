@@ -20,9 +20,10 @@ pub use write::WriteError;
 #[derive(Debug)]
 pub struct Sections<E: Endian> {
     pub endian: E,
+    pub debug_abbrev: Vec<u8>,
     pub debug_info: Vec<u8>,
     pub debug_str: Vec<u8>,
-    pub debug_abbrev: Vec<u8>,
+    pub debug_types: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -35,6 +36,26 @@ pub struct CompilationUnitIterator<'a, E: Endian> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompilationUnit<'a, E: Endian> {
     pub offset: usize,
+    pub common: UnitCommon<'a, E>,
+}
+
+#[derive(Debug)]
+pub struct TypeUnitIterator<'a, E: Endian> {
+    endian: E,
+    data: &'a [u8],
+    offset: usize,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TypeUnit<'a, E: Endian> {
+    pub offset: usize,
+    pub type_signature: u64,
+    pub type_offset: u64,
+    pub common: UnitCommon<'a, E>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct UnitCommon<'a, E: Endian> {
     pub endian: E,
     pub version: u16,
     pub address_size: u8,
@@ -47,7 +68,7 @@ pub struct CompilationUnit<'a, E: Endian> {
 pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
     r: &'entry [u8],
     offset: usize,
-    unit: &'a CompilationUnit<'unit, E>,
+    unit: &'a UnitCommon<'unit, E>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
 }
@@ -111,6 +132,55 @@ impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
     fn default() -> Self {
         CompilationUnit {
             offset: 0,
+            common: Default::default(),
+        }
+    }
+}
+
+impl<'a, E: Endian> CompilationUnit<'a, E> {
+    fn base_header_len(offset_size: u8) -> usize {
+        // version + abbrev_offset + address_size
+        2 + offset_size as usize + 1
+    }
+
+    fn total_header_len(offset_size: u8) -> usize {
+        // len + version + abbrev_offset + address_size
+        // Includes an extra 4 bytes if offset_size is 8
+        (offset_size as usize * 2 - 4) + Self::base_header_len(offset_size)
+    }
+
+    pub fn data(&'a self) -> &'a [u8] {
+        self.common.data()
+    }
+
+    pub fn data_offset(&'a self) -> usize {
+        self.offset + Self::total_header_len(self.common.offset_size)
+    }
+}
+
+impl<'a, E: Endian> TypeUnit<'a, E> {
+    fn base_header_len(offset_size: u8) -> usize {
+        // version + abbrev_offset + address_size + type_signature + type_offset
+        2 + offset_size as usize + 1 + 8 + offset_size as usize
+    }
+
+    fn total_header_len(offset_size: u8) -> usize {
+        // Includes an extra 4 bytes if offset_size is 8
+        (offset_size as usize * 2 - 4) + Self::base_header_len(offset_size)
+    }
+
+    pub fn data(&'a self) -> &'a [u8] {
+        self.common.data()
+    }
+
+    pub fn data_offset(&'a self) -> usize {
+        self.offset + Self::total_header_len(self.common.offset_size)
+    }
+}
+
+impl<'a, E: Endian+Default> Default for UnitCommon<'a, E> {
+    fn default() -> Self {
+        UnitCommon {
             endian: Default::default(),
             version: 4,
             address_size: 4,
@@ -121,32 +191,13 @@ impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
     }
 }
 
-impl<'a, E: Endian> CompilationUnit<'a, E> {
-    fn base_header_len(&self) -> usize {
-        // version + abbrev_offset + address_size
-        2 + self.offset_size as usize + 1
-    }
-
-    fn total_header_len(&self) -> usize {
-        // len + version + abbrev_offset + address_size
-        // Includes an extra 4 bytes if offset_size is 8
-        (self.offset_size as usize * 2 - 4) + self.base_header_len()
-    }
-
-    fn base_len(&self) -> usize {
-        self.base_header_len() + self.data.len()
-    }
-
+impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn data(&'a self) -> &'a [u8] {
         &*self.data
     }
 
-    pub fn data_offset(&self) -> usize {
-        self.offset + self.total_header_len()
-    }
-
-    pub fn data_end_offset(&self) -> usize {
-        self.data_offset() + self.data.len()
+    pub fn len(&self) -> usize {
+        self.data.len()
     }
 }
 

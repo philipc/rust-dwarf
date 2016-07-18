@@ -22,20 +22,22 @@ pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Sections<AnyEndian>, R
         elf::types::ELFDATA2MSB => AnyEndian::Big,
         data => return Err(ReadError::Unsupported(format!("elf data: {}", data.0))),
     };
-    let debug_info = try!(get_section(&mut file, ".debug_info")).data;
-    let debug_str = try!(get_section(&mut file, ".debug_str")).data;
-    let debug_abbrev = try!(get_section(&mut file, ".debug_abbrev")).data;
+    let debug_abbrev = get_section(&mut file, ".debug_abbrev");
+    let debug_info = get_section(&mut file, ".debug_info");
+    let debug_str = get_section(&mut file, ".debug_str");
+    let debug_types = get_section(&mut file, ".debug_types");
     Ok(Sections {
         endian: endian,
+        debug_abbrev: debug_abbrev,
         debug_info: debug_info,
         debug_str: debug_str,
-        debug_abbrev: debug_abbrev,
+        debug_types: debug_types,
     })
 }
 
-fn get_section(file: &mut elf::File, name: &str) -> Result<elf::Section, ReadError> {
+fn get_section(file: &mut elf::File, name: &str) -> Vec<u8> {
     match file.sections.iter().position(|section| section.shdr.name == name) {
-        Some(index) => Ok(file.sections.swap_remove(index)),
-        None => Err(ReadError::Invalid(format!("missing elf section: {}", name))),
+        Some(index) => file.sections.swap_remove(index).data,
+        None => Vec::new(),
     }
 }

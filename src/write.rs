@@ -20,7 +20,26 @@ impl std::convert::From<std::io::Error> for WriteError {
 
 impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
-        let len = self.base_len();
+        let len = Self::base_header_len(self.common.offset_size) + self.common.len();
+        try!(self.common.write(w, len));
+        try!(w.write_all(self.data()));
+        Ok(())
+    }
+}
+
+impl<'a, E: Endian> TypeUnit<'a, E> {
+    pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
+        let len = Self::base_header_len(self.common.offset_size) + self.common.len();
+        try!(self.common.write(w, len));
+        try!(self.common.endian.write_u64(w, self.type_signature));
+        try!(write_offset(w, self.common.endian, self.common.offset_size, self.type_offset));
+        try!(w.write_all(self.data()));
+        Ok(())
+    }
+}
+
+impl<'a, E: Endian> UnitCommon<'a, E> {
+    pub fn write<W: Write>(&self, w: &mut W, len: usize) -> Result<(), WriteError> {
         match self.offset_size {
             4 => {
                 if len >= 0xfffffff0 {
@@ -37,26 +56,24 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         try!(self.endian.write_u16(w, self.version));
         try!(write_offset(w, self.endian, self.offset_size, self.abbrev_offset));
         try!(w.write_u8(self.address_size));
-        try!(w.write_all(&*self.data));
         Ok(())
     }
 }
 
 impl<'a, 'b> Die<'a> {
-    pub fn write_null<E: Endian>(unit: &mut CompilationUnit<'b, E>) -> std::io::Result<()> {
+    pub fn write_null<E: Endian>(unit: &mut UnitCommon<'b, E>) -> std::io::Result<()> {
         let w = unit.data.to_mut();
         leb128::write_u64(w, 0)
     }
 
     pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b, E>,
+        unit: &mut UnitCommon<'b, E>,
         abbrev_hash: &AbbrevHash,
-    ) -> Result<usize, WriteError> {
-        let offset = unit.data_end_offset();
+    ) -> Result<(), WriteError> {
         if self.code == 0 {
             try!(Die::write_null(unit));
-            return Ok(offset);
+            return Ok(());
         }
         let abbrev = match abbrev_hash.get(self.code) {
             Some(abbrev) => abbrev,
@@ -72,14 +89,14 @@ impl<'a, 'b> Die<'a> {
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
             try!(attribute.write(unit, abbrev_attribute));
         }
-        Ok(offset)
+        Ok(())
     }
 }
 
 impl<'a, 'b> Attribute<'a> {
     pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b, E>,
+        unit: &mut UnitCommon<'b, E>,
         abbrev: &AbbrevAttribute,
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
@@ -94,7 +111,7 @@ impl<'a, 'b> Attribute<'a> {
 impl<'a, 'b> AttributeData<'a> {
     pub fn write<E: Endian>(
         &self,
-        unit: &mut CompilationUnit<'b, E>,
+        unit: &mut UnitCommon<'b, E>,
         form: constant::DwForm,
         indirect: bool,
     ) -> Result<(), WriteError> {
