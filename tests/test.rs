@@ -32,7 +32,6 @@ fn read_and_write() {
 
         let mut entries = read_unit.entries(&abbrev);
         let mut write_unit = CompilationUnit {
-            offset: read_unit.offset,
             common: UnitCommon {
                 data: Default::default(),
                 ..read_unit.common

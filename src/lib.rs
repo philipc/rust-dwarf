@@ -35,7 +35,6 @@ pub struct CompilationUnitIterator<'a, E: Endian> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CompilationUnit<'a, E: Endian> {
-    pub offset: usize,
     pub common: UnitCommon<'a, E>,
 }
 
@@ -48,14 +47,14 @@ pub struct TypeUnitIterator<'a, E: Endian> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TypeUnit<'a, E: Endian> {
-    pub offset: usize,
+    pub common: UnitCommon<'a, E>,
     pub type_signature: u64,
     pub type_offset: u64,
-    pub common: UnitCommon<'a, E>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct UnitCommon<'a, E: Endian> {
+    pub offset: usize,
     pub endian: E,
     pub version: u16,
     pub address_size: u8,
@@ -131,7 +130,6 @@ pub struct AbbrevAttribute {
 impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
     fn default() -> Self {
         CompilationUnit {
-            offset: 0,
             common: Default::default(),
         }
     }
@@ -154,7 +152,7 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
     }
 
     pub fn data_offset(&'a self) -> usize {
-        self.offset + Self::total_header_len(self.common.offset_size)
+        self.common.offset + Self::total_header_len(self.common.offset_size)
     }
 }
 
@@ -174,13 +172,14 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
     }
 
     pub fn data_offset(&'a self) -> usize {
-        self.offset + Self::total_header_len(self.common.offset_size)
+        self.common.offset + Self::total_header_len(self.common.offset_size)
     }
 }
 
 impl<'a, E: Endian+Default> Default for UnitCommon<'a, E> {
     fn default() -> Self {
         UnitCommon {
+            offset: 0,
             endian: Default::default(),
             version: 4,
             address_size: 4,

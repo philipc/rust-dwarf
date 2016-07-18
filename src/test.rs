@@ -8,8 +8,8 @@ fn compilation_unit_32() {
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
-        offset: offset,
         common: UnitCommon {
+            offset: offset,
             endian: endian,
             version: 4,
             address_size: 4,
@@ -43,8 +43,8 @@ fn compilation_unit_64() {
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = CompilationUnit {
-        offset: offset,
         common: UnitCommon {
+            offset: offset,
             endian: endian,
             version: 4,
             address_size: 4,
@@ -78,10 +78,8 @@ fn type_unit_32() {
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = TypeUnit {
-        offset: offset,
-        type_signature: 0x0123456789abcdef,
-        type_offset: 0x02,
         common: UnitCommon {
+            offset: offset,
             endian: endian,
             version: 4,
             address_size: 4,
@@ -89,6 +87,8 @@ fn type_unit_32() {
             abbrev_offset: 0x12,
             data: From::from(&data[..]),
         },
+        type_signature: 0x0123456789abcdef,
+        type_offset: 0x02,
     };
 
     let mut buf = Vec::new();
@@ -117,10 +117,8 @@ fn type_unit_64() {
     let endian = LittleEndian;
     let data = [0x01, 0x23, 0x45, 0x67];
     let write_val = TypeUnit {
-        offset: offset,
-        type_signature: 0x0123456789abcdef,
-        type_offset: 0x02,
         common: UnitCommon {
+            offset: offset,
             endian: endian,
             version: 4,
             address_size: 4,
@@ -128,6 +126,8 @@ fn type_unit_64() {
             abbrev_offset: 0x12,
             data: From::from(&data[..]),
         },
+        type_signature: 0x0123456789abcdef,
+        type_offset: 0x02,
     };
 
     let mut buf = Vec::new();

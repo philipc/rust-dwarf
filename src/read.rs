@@ -109,10 +109,9 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         offset: usize,
         endian: E,
     ) -> Result<CompilationUnit<'a, E>, ReadError> {
-        let (mut common, data) = try!(UnitCommon::read(r, endian));
+        let (mut common, data) = try!(UnitCommon::read(r, offset, endian));
         common.data = From::from(data);
         Ok(CompilationUnit {
-            offset: offset,
             common: common,
         })
     }
@@ -143,7 +142,7 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         offset: usize,
         endian: E,
     ) -> Result<TypeUnit<'a, E>, ReadError> {
-        let (mut common, mut data) = try!(UnitCommon::read(r, endian));
+        let (mut common, mut data) = try!(UnitCommon::read(r, offset, endian));
 
         // Read the remaining fields out of data
         let type_signature = try!(endian.read_u64(&mut data));
@@ -151,10 +150,9 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         common.data = From::from(data);
 
         Ok(TypeUnit {
-            offset: offset,
+            common: common,
             type_signature: type_signature,
             type_offset: type_offset,
-            common: common,
         })
     }
 
@@ -188,6 +186,7 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
 impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn read(
         r: &mut &'a [u8],
+        offset: usize,
         endian: E,
     ) -> Result<(UnitCommon<'a, E>, &'a [u8]), ReadError> {
         let mut offset_size = 4;
@@ -216,6 +215,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         let address_size = try!(data.read_u8());
 
         Ok((UnitCommon {
+            offset: offset,
             endian: endian,
             version: version,
             address_size: address_size,
