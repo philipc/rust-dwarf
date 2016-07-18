@@ -224,6 +224,8 @@ fn die_cursor() {
     assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[14]);
     assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[15]);
     assert!(entries.next_sibling().unwrap().is_none());
+
+    // TODO test DW_AT_sibling
 }
 
 #[test]

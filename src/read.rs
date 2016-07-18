@@ -277,6 +277,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
             unit: unit,
             abbrev: abbrev,
             next_child: false,
+            next_sibling: 0,
         }
     }
 
@@ -292,6 +293,15 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
         let mut r = self.r;
         let die = try!(Die::read(&mut r, self.offset, self.unit, self.abbrev));
         self.next_child = die.children;
+        self.next_sibling = 0;
+        for attribute in &die.attributes {
+            if attribute.at == constant::DW_AT_sibling {
+                if let AttributeData::Ref(offset) = attribute.data {
+                    self.next_sibling = self.unit.offset + offset as usize;
+                }
+                break;
+            }
+        }
         self.offset += self.r.len() - r.len();
         self.r = r;
         Ok(Some(die))
@@ -300,6 +310,17 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
     pub fn next_sibling(&mut self) -> Result<Option<Die<'entry>>, ReadError> {
         let mut depth = if self.next_child { 1 } else { 0 };
         while depth > 0 {
+            if self.next_sibling > self.offset {
+                let relative_offset = self.next_sibling - self.offset;
+                if relative_offset <= self.r.len() {
+                    self.offset = self.next_sibling;
+                    self.r = &self.r[relative_offset..];
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+            }
             match try!(self.next()) {
                 Some(die) => {
                     if die.is_null() {

@@ -70,6 +70,7 @@ pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
     unit: &'a UnitCommon<'unit, E>,
     abbrev: &'a AbbrevHash,
     next_child: bool,
+    next_sibling: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
