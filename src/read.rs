@@ -276,8 +276,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
             offset: offset,
             unit: unit,
             abbrev: abbrev,
-            next_child: false,
-            next_sibling: 0,
+            entry: Die::null(0),
         }
     }
 
@@ -285,35 +284,35 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
         self.offset
     }
 
-    pub fn next(&mut self) -> Result<Option<Die<'entry>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
         if self.r.len() == 0 {
             return Ok(None);
         }
 
         let mut r = self.r;
-        let die = try!(Die::read(&mut r, self.offset, self.unit, self.abbrev));
-        self.next_child = die.children;
-        self.next_sibling = 0;
-        for attribute in &die.attributes {
-            if attribute.at == constant::DW_AT_sibling {
-                if let AttributeData::Ref(offset) = attribute.data {
-                    self.next_sibling = self.unit.offset + offset as usize;
-                }
-                break;
-            }
-        }
+        try!(self.entry.read(&mut r, self.offset, self.unit, self.abbrev));
         self.offset += self.r.len() - r.len();
         self.r = r;
-        Ok(Some(die))
+        Ok(Some(&self.entry))
     }
 
-    pub fn next_sibling(&mut self) -> Result<Option<Die<'entry>>, ReadError> {
-        let mut depth = if self.next_child { 1 } else { 0 };
+    pub fn next_sibling(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
+        let mut depth = if self.entry.children { 1 } else { 0 };
         while depth > 0 {
-            if self.next_sibling > self.offset {
-                let relative_offset = self.next_sibling - self.offset;
+            let mut sibling_offset = 0;
+            for attribute in &self.entry.attributes {
+                if attribute.at == constant::DW_AT_sibling {
+                    if let AttributeData::Ref(offset) = attribute.data {
+                        sibling_offset = self.unit.offset + offset as usize;
+                    }
+                    break;
+                }
+            }
+            if sibling_offset > self.offset {
+                let relative_offset = sibling_offset - self.offset;
                 if relative_offset <= self.r.len() {
-                    self.offset = self.next_sibling;
+                    self.entry.set_null(0);
+                    self.offset = sibling_offset;
                     self.r = &self.r[relative_offset..];
                     depth -= 1;
                     if depth == 0 {
@@ -325,7 +324,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
                 Some(die) => {
                     if die.is_null() {
                         depth -= 1;
-                    } else if self.next_child {
+                    } else if die.children {
                         depth += 1;
                     }
                 },
@@ -338,33 +337,31 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
 
 impl<'a, 'b> Die<'a> {
     pub fn read<E: Endian>(
+        &mut self,
         r: &mut &'a [u8],
         offset: usize,
         unit: &UnitCommon<'b, E>,
         abbrev_hash: &AbbrevHash,
-    ) -> Result<Die<'a>, ReadError> {
-        let code = try!(leb128::read_u64(r));
-        if code == 0 {
-            return Ok(Die::null(offset));
+    ) -> Result<(), ReadError> {
+        self.set_null(offset);
+
+        self.code = try!(leb128::read_u64(r));
+        if self.code == 0 {
+            return Ok(());
         }
 
-        let abbrev = match abbrev_hash.get(code) {
+        let abbrev = match abbrev_hash.get(self.code) {
             Some(abbrev) => abbrev,
-            None => return Err(ReadError::Invalid(format!("missing abbrev {}", code))),
+            None => return Err(ReadError::Invalid(format!("missing abbrev {}", self.code))),
         };
 
-        let mut attributes = Vec::new();
+        self.tag = abbrev.tag;
+        self.children = abbrev.children;
         for abbrev_attribute in &abbrev.attributes {
-            attributes.push(try!(Attribute::read(r, unit, abbrev_attribute)));
+            self.attributes.push(try!(Attribute::read(r, unit, abbrev_attribute)));
         }
 
-        Ok(Die {
-            offset: offset,
-            code: code,
-            tag: abbrev.tag,
-            children: abbrev.children,
-            attributes: attributes,
-        })
+        Ok(())
     }
 }
 

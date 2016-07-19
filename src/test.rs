@@ -208,21 +208,21 @@ fn die_cursor() {
     let mut entries = unit.entries(0, &abbrev_hash);
     for i in 0..write_val.len() {
         match entries.next() {
-            Ok(Some(read_val)) => assert_eq!(read_val, write_val[i]),
+            Ok(Some(read_val)) => assert_eq!(*read_val, write_val[i]),
             _ => panic!(),
         }
     }
     assert!(entries.next().unwrap().is_none());
 
     let mut entries = unit.entries(0, &abbrev_hash);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[0]);
-    assert_eq!(entries.next().unwrap().unwrap(), write_val[1]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[2]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[4]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[7]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[13]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[14]);
-    assert_eq!(entries.next_sibling().unwrap().unwrap(), write_val[15]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[0]);
+    assert_eq!(*entries.next().unwrap().unwrap(), write_val[1]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[2]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[4]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[7]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[13]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[14]);
+    assert_eq!(*entries.next_sibling().unwrap().unwrap(), write_val[15]);
     assert!(entries.next_sibling().unwrap().is_none());
 
     // TODO test DW_AT_sibling
@@ -254,7 +254,8 @@ fn die() {
     write_val.write(&mut unit, &abbrev_hash).unwrap();
 
     let mut r = unit.data();
-    let read_val = Die::read(&mut r, write_val.offset, &unit, &abbrev_hash).unwrap();
+    let mut read_val = Die::null(0);
+    read_val.read(&mut r, write_val.offset, &unit, &abbrev_hash).unwrap();
 
     assert_eq!(unit.data(), [1, b't', b'e', b's', b't', 0]);
     assert_eq!(r.len(), 0);

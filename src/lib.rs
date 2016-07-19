@@ -69,8 +69,7 @@ pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
     offset: usize,
     unit: &'a UnitCommon<'unit, E>,
     abbrev: &'a AbbrevHash,
-    next_child: bool,
-    next_sibling: usize,
+    entry: Die<'entry>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -210,6 +209,14 @@ impl<'a> Die<'a> {
             children: false,
             attributes: Vec::new(),
         }
+    }
+
+    pub fn set_null(&mut self, offset: usize) {
+        self.offset = offset;
+        self.code = 0;
+        self.tag = constant::DW_TAG_null;
+        self.children = false;
+        self.attributes.clear();
     }
 
     pub fn is_null(&self) -> bool {
