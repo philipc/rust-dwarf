@@ -14,7 +14,9 @@ fn read(b: &mut test::Bencher) {
             let abbrev = sections.abbrev(&unit.common).unwrap();
             let mut entries = unit.entries(&abbrev);
             while let Some(entry) = entries.next().unwrap() {
-                test::black_box(entry);
+                for attribute in &entry.attributes {
+                    test::black_box(attribute);
+                }
             }
         }
     });
