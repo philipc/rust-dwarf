@@ -2,6 +2,7 @@
 
 extern crate test;
 extern crate dwarf;
+extern crate gimli;
 
 #[bench]
 fn read(b: &mut test::Bencher) {
@@ -12,7 +13,8 @@ fn read(b: &mut test::Bencher) {
         while let Some(unit) = units.next().unwrap() {
             let abbrev = sections.abbrev(&unit.common).unwrap();
             let mut entries = unit.entries(&abbrev);
-            while let Some(_) = entries.next().unwrap() {
+            while let Some(entry) = entries.next().unwrap() {
+                test::black_box(entry);
             }
         }
     });
@@ -29,6 +31,31 @@ fn display(b: &mut test::Bencher) {
         while let Some(unit) = units.next().unwrap() {
             let abbrev = sections.abbrev(&unit.common).unwrap();
             unit.entries(&abbrev).display(&mut f).unwrap();
+        }
+    });
+}
+
+#[bench]
+fn read_gimli(b: &mut test::Bencher) {
+    let path = std::env::args_os().next().unwrap(); // Note: not constant
+    let sections = dwarf::elf::load(path).unwrap();
+    b.iter(|| {
+        let debug_info = gimli::DebugInfo::<gimli::LittleEndian>::new(&sections.debug_info);
+        for unit in debug_info.compilation_units() {
+            let unit = unit.unwrap();
+            let abbrev_offset = unit.debug_abbrev_offset().0 as usize;
+            let debug_abbrev = gimli::DebugAbbrev::<gimli::LittleEndian>::new(&sections.debug_abbrev[abbrev_offset..]);
+            let abbrevs = debug_abbrev.abbreviations().unwrap();
+            let mut cursor = unit.entries(&abbrevs);
+            loop {
+                let entry = cursor.current().unwrap().unwrap();
+                for attr in entry.attrs() {
+                    test::black_box(attr.unwrap());
+                }
+                if let None = cursor.next_dfs() {
+                    break;
+                }
+            }
         }
     });
 }
