@@ -6,8 +6,6 @@ use std::io::{Read, Write};
 pub use self::leb128::read::Error;
 pub use self::leb128::read::unsigned as read_u64;
 pub use self::leb128::read::signed as read_i64;
-pub use self::leb128::write::unsigned as write_u64;
-pub use self::leb128::write::signed as write_i64;
 
 pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
     let val = try!(read_u64(r));
@@ -17,8 +15,19 @@ pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
     Ok(val as u16)
 }
 
+pub fn write_u64<W: Write>(w: &mut W, value: u64) -> std::io::Result<()> {
+    try!(leb128::write::unsigned(w, value));
+    Ok(())
+}
+
+pub fn write_i64<W: Write>(w: &mut W, value: i64) -> std::io::Result<()> {
+    try!(leb128::write::signed(w, value as i64));
+    Ok(())
+}
+
 pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
-    write_u64(w, value as u64)
+    try!(write_u64(w, value as u64));
+    Ok(())
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@ license = "MIT/Apache-2.0"
 [dependencies]
 byteorder = "0.5.3"
 elf = "0.0.9"
-leb128 = "0.2.0"
+leb128 = "0.2.1"
 
 [features]
 clippy = []
