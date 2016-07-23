@@ -43,11 +43,10 @@ fn read_gimli(b: &mut test::Bencher) {
     let sections = dwarf::elf::load(path).unwrap();
     b.iter(|| {
         let debug_info = gimli::DebugInfo::<gimli::LittleEndian>::new(&sections.debug_info);
-        for unit in debug_info.compilation_units() {
+        let debug_abbrev = gimli::DebugAbbrev::<gimli::LittleEndian>::new(&sections.debug_abbrev);
+        for unit in debug_info.units() {
             let unit = unit.unwrap();
-            let abbrev_offset = unit.debug_abbrev_offset().0 as usize;
-            let debug_abbrev = gimli::DebugAbbrev::<gimli::LittleEndian>::new(&sections.debug_abbrev[abbrev_offset..]);
-            let abbrevs = debug_abbrev.abbreviations().unwrap();
+            let abbrevs = unit.abbreviations(debug_abbrev).unwrap();
             let mut cursor = unit.entries(&abbrevs);
             loop {
                 let entry = cursor.current().unwrap().unwrap();
