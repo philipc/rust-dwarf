@@ -14,8 +14,10 @@ fn read_dwarf(b: &mut test::Bencher) {
             let abbrev = sections.abbrev(&unit.common).unwrap();
             let mut entries = unit.entries(&abbrev);
             while let Some(entry) = entries.next().unwrap() {
+                test::black_box(entry.tag);
                 for attribute in &entry.attributes {
-                    test::black_box(attribute);
+                    test::black_box(attribute.at);
+                    test::black_box(&attribute.data);
                 }
             }
         }
@@ -50,8 +52,11 @@ fn read_gimli(b: &mut test::Bencher) {
             let mut cursor = unit.entries(&abbrevs);
             loop {
                 let entry = cursor.current().unwrap().unwrap();
+                test::black_box(entry.tag());
                 for attr in entry.attrs() {
-                    test::black_box(attr.unwrap());
+                    let attr = attr.unwrap();
+                    test::black_box(attr.name());
+                    test::black_box(attr.value());
                 }
                 if let None = cursor.next_dfs() {
                     break;
