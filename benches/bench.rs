@@ -5,7 +5,7 @@ extern crate dwarf;
 extern crate gimli;
 
 #[bench]
-fn read(b: &mut test::Bencher) {
+fn read_dwarf(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
     b.iter(|| {
