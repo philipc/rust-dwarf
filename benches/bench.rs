@@ -5,6 +5,21 @@ extern crate dwarf;
 extern crate gimli;
 
 #[bench]
+fn display(b: &mut test::Bencher) {
+    let path = std::env::args_os().next().unwrap(); // Note: not constant
+    let sections = dwarf::elf::load(path).unwrap();
+    let mut buf = Vec::new();
+    let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
+    b.iter(|| {
+        let mut units = sections.compilation_units();
+        while let Some(unit) = units.next().unwrap() {
+            let abbrev = sections.abbrev(&unit.common).unwrap();
+            unit.entries(&abbrev).display(&mut f).unwrap();
+        }
+    });
+}
+
+#[bench]
 fn read_dwarf(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
@@ -20,21 +35,6 @@ fn read_dwarf(b: &mut test::Bencher) {
                     test::black_box(&attribute.data);
                 }
             }
-        }
-    });
-}
-
-#[bench]
-fn display(b: &mut test::Bencher) {
-    let path = std::env::args_os().next().unwrap(); // Note: not constant
-    let sections = dwarf::elf::load(path).unwrap();
-    let mut buf = Vec::new();
-    let mut f = dwarf::display::DefaultFormatter::new(&mut buf, 4);
-    b.iter(|| {
-        let mut units = sections.compilation_units();
-        while let Some(unit) = units.next().unwrap() {
-            let abbrev = sections.abbrev(&unit.common).unwrap();
-            unit.entries(&abbrev).display(&mut f).unwrap();
         }
     });
 }
