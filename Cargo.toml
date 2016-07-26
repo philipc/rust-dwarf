@@ -18,3 +18,6 @@ gimli = "0.2.0"
 
 [features]
 clippy = []
+
+[profile.bench]
+debug = true
