@@ -98,7 +98,7 @@ pub enum AttributeData<'a> {
     UData(u64),
     SData(i64),
     Flag(bool),
-    String(&'a str),
+    String(&'a [u8]),
     StringOffset(u64),
     Ref(u64),
     RefAddress(u64),

@@ -9,7 +9,6 @@ use leb128;
 #[derive(Debug)]
 pub enum ReadError {
     Io(std::io::Error),
-    Utf8(std::str::Utf8Error),
     Invalid(String),
     Unsupported(String),
 }
@@ -17,12 +16,6 @@ pub enum ReadError {
 impl std::convert::From<std::io::Error> for ReadError {
     fn from(e: std::io::Error) -> Self {
         ReadError::Io(e)
-    }
-}
-
-impl std::convert::From<std::str::Utf8Error> for ReadError {
-    fn from(e: std::str::Utf8Error) -> Self {
-        ReadError::Utf8(e)
     }
 }
 
@@ -462,12 +455,12 @@ fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
     Ok(val)
 }
 
-fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a str, ReadError> {
+fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
         None => return Err(ReadError::Invalid("unterminated string".to_string())),
     };
-    let val = try!(std::str::from_utf8(&r[..len]));
+    let val = &r[..len];
     *r = &r[len + 1..];
     Ok(val)
 }

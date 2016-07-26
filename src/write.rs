@@ -164,7 +164,7 @@ impl<'a, 'b> AttributeData<'a> {
                 assert!(*val);
             },
             (&AttributeData::String(ref val), constant::DW_FORM_string) => {
-                try!(w.write_all(val.as_bytes()));
+                try!(w.write_all(val));
                 try!(w.write_u8(0));
             },
             (&AttributeData::StringOffset(ref val), constant::DW_FORM_strp) => {

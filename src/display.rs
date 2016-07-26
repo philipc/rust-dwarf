@@ -136,7 +136,12 @@ impl<'a> fmt::Display for AttributeData<'a> {
             AttributeData::UData(val) => write!(f, "(udata) {:x}", val),
             AttributeData::SData(val) => write!(f, "(sdata) {:x}", val),
             AttributeData::Flag(val) => write!(f, "(flag) {}", val),
-            AttributeData::String(val) => write!(f, "(string) {}", val),
+            AttributeData::String(val) => {
+                match std::str::from_utf8(val) {
+                    Ok(val) => write!(f, "(string) {}", val),
+                    Err(_) => write!(f, "(string) len {}", val.len()),
+                }
+            }
             // TODO: display the string too
             AttributeData::StringOffset(val) => write!(f, "(strp) {}", val),
             AttributeData::Ref(val) => write!(f, "(ref) {}", val),

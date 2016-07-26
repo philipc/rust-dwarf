@@ -176,7 +176,7 @@ fn die_cursor() {
             tag: DW_TAG_namespace,
             children: children,
             attributes: vec![
-                Attribute { at: DW_AT_name, data: AttributeData::String(name) },
+                Attribute { at: DW_AT_name, data: AttributeData::String(name.as_bytes()) },
             ],
         }
     }
@@ -246,7 +246,7 @@ fn die() {
         tag: DW_TAG_namespace,
         children: true,
         attributes: vec![
-            Attribute { at: DW_AT_name, data: AttributeData::String("test") },
+            Attribute { at: DW_AT_name, data: AttributeData::String(b"test") },
         ],
     };
 
@@ -303,7 +303,7 @@ fn attribute_data() {
         (AttributeData::Flag(false), DW_FORM_flag, &[0][..]),
         (AttributeData::Flag(true), DW_FORM_flag, &[1][..]),
         (AttributeData::Flag(true), DW_FORM_flag_present, &[][..]),
-        (AttributeData::String("test"), DW_FORM_string, &[b't', b'e', b's', b't', 0][..]),
+        (AttributeData::String(b"test"), DW_FORM_string, &[b't', b'e', b's', b't', 0][..]),
         (AttributeData::StringOffset(0x01234567), DW_FORM_strp, &[0x67, 0x45, 0x23, 0x01][..]),
         (AttributeData::Ref(0x01), DW_FORM_ref1, &[0x01][..]),
         (AttributeData::Ref(0x0123), DW_FORM_ref2, &[0x23, 0x01][..]),
