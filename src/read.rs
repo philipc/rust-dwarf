@@ -350,8 +350,16 @@ impl<'a, 'b> Die<'a> {
 
         self.tag = abbrev.tag;
         self.children = abbrev.children;
-        for abbrev_attribute in &abbrev.attributes {
-            self.attributes.push(try!(Attribute::read(r, unit, abbrev_attribute)));
+        let len = abbrev.attributes.len();
+        self.attributes.reserve(len);
+        unsafe {
+            self.attributes.set_len(len);
+            for i in 0..len {
+                if let Err(e) = self.attributes[i].read(r, unit, &abbrev.attributes[i]) {
+                    self.attributes.clear();
+                    return Err(e);
+                }
+            }
         }
 
         Ok(())
@@ -360,25 +368,25 @@ impl<'a, 'b> Die<'a> {
 
 impl<'a, 'b> Attribute<'a> {
     pub fn read<E: Endian>(
+        &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'b, E>,
         abbrev: &AbbrevAttribute,
-    ) -> Result<Attribute<'a>, ReadError> {
-        let data = try!(AttributeData::read(r, unit, abbrev.form));
-        Ok(Attribute {
-            at: abbrev.at,
-            data: data,
-        })
+    ) -> Result<(), ReadError> {
+        self.at = abbrev.at;
+        try!(self.data.read(r, unit, abbrev.form));
+        Ok(())
     }
 }
 
 impl<'a, 'b> AttributeData<'a> {
     pub fn read<E: Endian>(
+        &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'b, E>,
         form: constant::DwForm,
-    ) -> Result<AttributeData<'a>, ReadError> {
-        let data = match form {
+    ) -> Result<(), ReadError> {
+        *self = match form {
             constant::DW_FORM_addr => {
                 let val = try!(read_address(r, unit.endian, unit.address_size));
                 AttributeData::Address(val)
@@ -426,7 +434,7 @@ impl<'a, 'b> AttributeData<'a> {
             constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r))),
             constant::DW_FORM_indirect => {
                 let val = try!(leb128::read_u16(r));
-                try!(AttributeData::read(r, unit, constant::DwForm(val)))
+                return self.read(r, unit, constant::DwForm(val))
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
@@ -442,7 +450,7 @@ impl<'a, 'b> AttributeData<'a> {
             constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(unit.endian.read_u64(r))),
             _ => return Err(ReadError::Unsupported(format!("attribute form {}", form.0))),
         };
-        Ok(data)
+        Ok(())
     }
 }
 

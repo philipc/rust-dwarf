@@ -1,5 +1,6 @@
 use super::*;
 use constant::*;
+use std;
 
 #[test]
 fn compilation_unit_32() {
@@ -274,7 +275,8 @@ fn attribute() {
     write_val.write(&mut unit, &abbrev).unwrap();
 
     let mut r = unit.data();
-    let read_val = Attribute::read(&mut r, &unit, &abbrev).unwrap();
+    let mut read_val: Attribute = unsafe { std::mem::uninitialized() };
+    read_val.read(&mut r, &unit, &abbrev).unwrap();
 
     assert_eq!(unit.data(), [0x67, 0x45, 0x23, 0x01]);
     assert_eq!(r.len(), 0);
@@ -353,7 +355,8 @@ fn attribute_data_inner<'a, 'b, E: Endian>(
 
         let read_form = if indirect { DW_FORM_indirect } else { form };
         let mut r = buf;
-        let read_val = AttributeData::read(&mut r, unit, read_form).unwrap();
+        let mut read_val: AttributeData = unsafe { std::mem::uninitialized() };
+        read_val.read(&mut r, unit, read_form).unwrap();
 
         if indirect {
             assert_eq!(buf[0] as u16, form.0);
