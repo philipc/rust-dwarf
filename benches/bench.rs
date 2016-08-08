@@ -50,16 +50,13 @@ fn read_gimli(b: &mut test::Bencher) {
             let unit = unit.unwrap();
             let abbrevs = unit.abbreviations(debug_abbrev).unwrap();
             let mut cursor = unit.entries(&abbrevs);
-            loop {
-                let entry = cursor.current().unwrap().unwrap();
+            while cursor.next_dfs().unwrap().is_some() {
+                let entry = cursor.current().unwrap();
                 test::black_box(entry.tag());
                 for attr in entry.attrs() {
                     let attr = attr.unwrap();
                     test::black_box(attr.name());
                     test::black_box(attr.value());
-                }
-                if let None = cursor.next_dfs() {
-                    break;
                 }
             }
         }
