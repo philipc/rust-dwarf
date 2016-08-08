@@ -1,7 +1,5 @@
 use std;
-use std::io::Read;
 use std::ops::Deref;
-use byteorder::{ReadBytesExt};
 
 use super::*;
 use leb128;
@@ -9,15 +7,26 @@ use leb128;
 #[derive(Debug)]
 pub enum ReadError {
     Io,
+    Eof,
     Invalid,
     Unsupported,
     Overflow,
 }
 
 impl std::convert::From<std::io::Error> for ReadError {
-    fn from(_e: std::io::Error) -> Self {
+    fn from(_: std::io::Error) -> Self {
         ReadError::Io
     }
+}
+
+#[inline]
+pub fn read_u8(r: &mut &[u8]) -> Result<u8, ReadError> {
+    if r.len() < 1 {
+        return Err(ReadError::Eof);
+    }
+    let byte = r[0];
+    *r = &r[1..];
+    return Ok(byte)
 }
 
 impl<E: Endian> Sections<E> {
@@ -197,7 +206,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         }
 
         let abbrev_offset = try!(read_offset(&mut data, endian, offset_size));
-        let address_size = try!(data.read_u8());
+        let address_size = try!(read_u8(&mut data));
 
         Ok((UnitCommon {
             offset: offset,
@@ -403,12 +412,12 @@ impl<'a, 'b> AttributeData<'a> {
                 AttributeData::Block(val)
             }
             constant::DW_FORM_block1 => {
-                let len = try!(r.read_u8()) as usize;
+                let len = try!(read_u8(r)) as usize;
                 let val = try!(read_block(r, len));
                 AttributeData::Block(val)
             }
-            constant::DW_FORM_data1 => AttributeData::Data1(try!(r.read_u8())),
-            constant::DW_FORM_flag => AttributeData::Flag(try!(r.read_u8()) != 0),
+            constant::DW_FORM_data1 => AttributeData::Data1(try!(read_u8(r))),
+            constant::DW_FORM_flag => AttributeData::Flag(try!(read_u8(r)) != 0),
             constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
             constant::DW_FORM_strp => {
                 let val = try!(read_offset(r, unit.endian, unit.offset_size));
@@ -419,7 +428,7 @@ impl<'a, 'b> AttributeData<'a> {
                 let val = try!(read_offset(r, unit.endian, unit.offset_size));
                 AttributeData::RefAddress(val)
             }
-            constant::DW_FORM_ref1 => AttributeData::Ref(try!(r.read_u8()) as u64),
+            constant::DW_FORM_ref1 => AttributeData::Ref(try!(read_u8(r)) as u64),
             constant::DW_FORM_ref2 => AttributeData::Ref(try!(unit.endian.read_u16(r)) as u64),
             constant::DW_FORM_ref4 => AttributeData::Ref(try!(unit.endian.read_u32(r)) as u64),
             constant::DW_FORM_ref8 => AttributeData::Ref(try!(unit.endian.read_u64(r)) as u64),
@@ -465,7 +474,7 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
     Ok(val)
 }
 
-fn read_offset<R: Read, E: Endian>(r: &mut R, endian: E, offset_size: u8) -> Result<u64, ReadError> {
+fn read_offset<E: Endian>(r: &mut &[u8], endian: E, offset_size: u8) -> Result<u64, ReadError> {
     let val = match offset_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
@@ -474,7 +483,7 @@ fn read_offset<R: Read, E: Endian>(r: &mut R, endian: E, offset_size: u8) -> Res
     Ok(val)
 }
 
-fn read_address<R: Read, E: Endian>(r: &mut R, endian: E, address_size: u8) -> Result<u64, ReadError> {
+fn read_address<E: Endian>(r: &mut &[u8], endian: E, address_size: u8) -> Result<u64, ReadError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
@@ -484,7 +493,7 @@ fn read_address<R: Read, E: Endian>(r: &mut R, endian: E, address_size: u8) -> R
 }
 
 impl AbbrevHash {
-    pub fn read<R: Read>(r: &mut R) -> Result<AbbrevHash, ReadError> {
+    pub fn read(r: &mut &[u8]) -> Result<AbbrevHash, ReadError> {
         let mut abbrev_hash = AbbrevHash::default();
         while let Some(abbrev) = try!(Abbrev::read(r)) {
             if abbrev_hash.insert(abbrev).is_some() {
@@ -496,7 +505,7 @@ impl AbbrevHash {
 }
 
 impl Abbrev {
-    pub fn read<R: Read>(r: &mut R) -> Result<Option<Abbrev>, ReadError> {
+    pub fn read(r: &mut &[u8]) -> Result<Option<Abbrev>, ReadError> {
         let code = try!(leb128::read_u64(r));
         if code == 0 {
             return Ok(None);
@@ -504,7 +513,7 @@ impl Abbrev {
 
         let tag = try!(leb128::read_u16(r));
 
-        let children = match constant::DwChildren(try!(r.read_u8())) {
+        let children = match constant::DwChildren(try!(read_u8(r))) {
             constant::DW_CHILDREN_no => false,
             constant::DW_CHILDREN_yes => true,
             _ => return Err(ReadError::Invalid),
@@ -525,7 +534,7 @@ impl Abbrev {
 }
 
 impl AbbrevAttribute {
-    pub fn read<R: Read>(r: &mut R) -> Result<Option<AbbrevAttribute>, ReadError> {
+    pub fn read(r: &mut &[u8]) -> Result<Option<AbbrevAttribute>, ReadError> {
         let at = try!(leb128::read_u16(r));
         let form = try!(leb128::read_u16(r));
         let attribute = AbbrevAttribute {

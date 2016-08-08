@@ -1,16 +1,16 @@
 use std;
 use std::convert::From;
-use std::io::{Read, Write};
-use byteorder::{ReadBytesExt, WriteBytesExt};
-pub use read::ReadError as Error;
+use std::io::Write;
+use byteorder::WriteBytesExt;
+use read::{read_u8, ReadError};
 
-pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
+pub fn read_u64(r: &mut &[u8]) -> Result<u64, ReadError> {
     let mut result = 0;
     let mut shift = 0;
     loop {
-        let byte = try!(r.read_u8());
+        let byte = try!(read_u8(r));
         if shift == 63 && byte != 0x00 && byte != 0x01 {
-            return Err(Error::Overflow);
+            return Err(ReadError::Overflow);
         }
         result |= u64::from(byte & 0x7f) << shift;
         if byte & 0x80 == 0 {
@@ -20,14 +20,14 @@ pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
     }
 }
 
-pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
+pub fn read_i64(r: &mut &[u8]) -> Result<i64, ReadError> {
     let mut result = 0;
     let mut shift = 0;
     let size = 64;
     loop {
-        let byte = try!(r.read_u8());
+        let byte = try!(read_u8(r));
         if shift == 63 && byte != 0x00 && byte != 0x7f {
-            return Err(Error::Overflow);
+            return Err(ReadError::Overflow);
         }
         result |= i64::from(byte & 0x7f) << shift;
         shift += 7;
@@ -41,10 +41,10 @@ pub fn read_i64<R: Read>(r: &mut R) -> Result<i64, Error> {
     }
 }
 
-pub fn read_u16<R: Read>(r: &mut R) -> Result<u16, Error> {
+pub fn read_u16(r: &mut &[u8]) -> Result<u16, ReadError> {
     let val = try!(read_u64(r));
     if val > std::u16::MAX as u64 {
-            return Err(Error::Overflow);
+            return Err(ReadError::Overflow);
     }
     Ok(val as u16)
 }
@@ -82,6 +82,7 @@ pub fn write_u16<W: Write>(w: &mut W, value: u16) -> std::io::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use read::ReadError;
     use std;
 
     #[test]
@@ -122,7 +123,7 @@ mod test {
             (&[0xff,0xff,0x07][..],),
         ] {
             match read_u16(&mut r) {
-                Err(Error::Overflow) => {},
+                Err(ReadError::Overflow) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -133,7 +134,7 @@ mod test {
             (&[0xff,0xff,0xff][..],),
         ] {
             match read_u16(&mut r) {
-                Err(Error::Io) => {},
+                Err(ReadError::Eof) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -181,7 +182,7 @@ mod test {
             (&[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff][..],),
         ] {
             match read_u64(&mut r) {
-                Err(Error::Overflow) => {},
+                Err(ReadError::Overflow) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -192,7 +193,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_u64(&mut r) {
-                Err(Error::Io) => {},
+                Err(ReadError::Eof) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -266,7 +267,7 @@ mod test {
             (&[0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff][..],),
         ] {
             match read_i64(&mut r) {
-                Err(Error::Overflow) => {},
+                Err(ReadError::Overflow) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -277,7 +278,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_i64(&mut r) {
-                Err(Error::Io) => {},
+                Err(ReadError::Eof) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
