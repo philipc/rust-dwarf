@@ -1,6 +1,5 @@
 use std;
 use std::io::Write;
-use byteorder::WriteBytesExt;
 
 use super::*;
 use leb128;
@@ -16,6 +15,12 @@ impl std::convert::From<std::io::Error> for WriteError {
     fn from(e: std::io::Error) -> Self {
         WriteError::Io(e)
     }
+}
+
+#[inline]
+pub fn write_u8<W: Write>(w: &mut W, val: u8) -> Result<(), std::io::Error> {
+    let buf = [val];
+    w.write_all(&buf)
 }
 
 impl<'a, E: Endian> CompilationUnit<'a, E> {
@@ -55,7 +60,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         };
         try!(self.endian.write_u16(w, self.version));
         try!(write_offset(w, self.endian, self.offset_size, self.abbrev_offset));
-        try!(w.write_u8(self.address_size));
+        try!(write_u8(w, self.address_size));
         Ok(())
     }
 }
@@ -124,7 +129,7 @@ impl<'a, 'b> AttributeData<'a> {
                 try!(write_address(w, unit.endian, unit.address_size, *val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block1) => {
-                try!(w.write_u8(val.len() as u8));
+                try!(write_u8(w, val.len() as u8));
                 try!(w.write_all(val));
             },
             (&AttributeData::Block(ref val), constant::DW_FORM_block2) => {
@@ -140,7 +145,7 @@ impl<'a, 'b> AttributeData<'a> {
                 try!(w.write_all(val));
             },
             (&AttributeData::Data1(ref val), constant::DW_FORM_data1) => {
-                try!(w.write_u8(*val));
+                try!(write_u8(w, *val));
             },
             (&AttributeData::Data2(ref val), constant::DW_FORM_data2) => {
                 try!(unit.endian.write_u16(w, *val));
@@ -158,20 +163,20 @@ impl<'a, 'b> AttributeData<'a> {
                 try!(leb128::write_i64(w, *val));
             },
             (&AttributeData::Flag(ref val), constant::DW_FORM_flag) => {
-                try!(w.write_u8(if *val { 1 } else { 0 }));
+                try!(write_u8(w, if *val { 1 } else { 0 }));
             },
             (&AttributeData::Flag(ref val), constant::DW_FORM_flag_present) => {
                 assert!(*val);
             },
             (&AttributeData::String(ref val), constant::DW_FORM_string) => {
                 try!(w.write_all(val));
-                try!(w.write_u8(0));
+                try!(write_u8(w, 0));
             },
             (&AttributeData::StringOffset(ref val), constant::DW_FORM_strp) => {
                 try!(write_offset(w, unit.endian, unit.offset_size, *val));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref1) => {
-                try!(w.write_u8(*val as u8));
+                try!(write_u8(w, *val as u8));
             },
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref2) => {
                 try!(unit.endian.write_u16(w, *val as u16));
@@ -251,7 +256,7 @@ impl Abbrev {
         } else {
             constant::DW_CHILDREN_no
         };
-        try!(w.write_u8(children.0));
+        try!(write_u8(w, children.0));
 
         for attribute in &self.attributes {
             try!(attribute.write(w));

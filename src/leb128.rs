@@ -1,8 +1,8 @@
 use std;
 use std::convert::From;
 use std::io::Write;
-use byteorder::WriteBytesExt;
 use read::{read_u8, ReadError};
+use write::write_u8;
 
 pub fn read_u64(r: &mut &[u8]) -> Result<u64, ReadError> {
     let mut result = 0;
@@ -54,10 +54,10 @@ pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
         let byte = value as u8 & 0x7f;
         value >>= 7;
         if value == 0 {
-            try!(w.write_u8(byte));
+            try!(write_u8(w, byte));
             return Ok(());
         }
-        try!(w.write_u8(byte | 0x80));
+        try!(write_u8(w, byte | 0x80));
     }
 }
 
@@ -66,11 +66,11 @@ pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
         let byte = value as u8 & 0x7f;
         value >>= 6;
         if value == 0 || value == -1 {
-            try!(w.write_u8(byte));
+            try!(write_u8(w, byte));
             return Ok(());
         }
         value >>= 1;
-        try!(w.write_u8(byte | 0x80));
+        try!(write_u8(w, byte | 0x80));
     }
 }
 

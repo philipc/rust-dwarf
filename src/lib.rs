@@ -1,5 +1,3 @@
-extern crate byteorder;
-
 use std::borrow::Cow;
 
 mod endian;
