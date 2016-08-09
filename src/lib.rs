@@ -218,7 +218,7 @@ impl<'a> Die<'a> {
     }
 
     pub fn is_null(&self) -> bool {
-        self.tag == constant::DW_TAG_null
+        self.code == 0
     }
 }
 
