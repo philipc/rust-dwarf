@@ -2,18 +2,7 @@ use std;
 use std::convert::From;
 use std::io::{Read, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt};
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Overflow,
-}
-
-impl std::convert::From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
+pub use read::ReadError as Error;
 
 pub fn read_u64<R: Read>(r: &mut R) -> Result<u64, Error> {
     let mut result = 0;
@@ -144,7 +133,7 @@ mod test {
             (&[0xff,0xff,0xff][..],),
         ] {
             match read_u16(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::Io) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -203,7 +192,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_u64(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::Io) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }
@@ -288,7 +277,7 @@ mod test {
             (&[0xff,0xff][..],),
         ] {
             match read_i64(&mut r) {
-                Err(Error::Io(e)) => assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof),
+                Err(Error::Io) => {},
                 otherwise => panic!("{:?}", otherwise),
             };
         }

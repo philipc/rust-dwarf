@@ -8,23 +8,15 @@ use leb128;
 
 #[derive(Debug)]
 pub enum ReadError {
-    Io(std::io::Error),
-    Invalid(String),
-    Unsupported(String),
+    Io,
+    Invalid,
+    Unsupported,
+    Overflow,
 }
 
 impl std::convert::From<std::io::Error> for ReadError {
-    fn from(e: std::io::Error) -> Self {
-        ReadError::Io(e)
-    }
-}
-
-impl std::convert::From<leb128::Error> for ReadError {
-    fn from(e: leb128::Error) -> Self {
-        match e {
-            leb128::Error::Io(e) => ReadError::Io(e),
-            leb128::Error::Overflow => ReadError::Invalid("LEB128 overflow".to_string()),
-        }
+    fn from(_e: std::io::Error) -> Self {
+        ReadError::Io
     }
 }
 
@@ -188,10 +180,10 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
             offset_size = 8;
             len = try!(endian.read_u64(r)) as usize;
         } else if len >= 0xfffffff0 {
-            return Err(ReadError::Unsupported(format!("unit length {}", len)));
+            return Err(ReadError::Unsupported);
         }
         if len > r.len() {
-            return Err(ReadError::Invalid(format!("unit length {}", len)));
+            return Err(ReadError::Invalid);
         }
 
         // Tell the iterator we read the entire length, even if we don't parse it all now
@@ -201,7 +193,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         let version = try!(endian.read_u16(&mut data));
         // TODO: is this correct?
         if version < 2 || version > 4 {
-            return Err(ReadError::Unsupported(format!("unit version {}", version)));
+            return Err(ReadError::Unsupported);
         }
 
         let abbrev_offset = try!(read_offset(&mut data, endian, offset_size));
@@ -224,7 +216,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         let offset = self.abbrev_offset as usize;
         let len = debug_abbrev.len();
         if offset >= len {
-            return Err(ReadError::Invalid(format!("abbrev offset {} > {}", offset, len)));
+            return Err(ReadError::Invalid);
         }
         AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
@@ -345,7 +337,7 @@ impl<'a, 'b> Die<'a> {
 
         let abbrev = match abbrev_hash.get(self.code) {
             Some(abbrev) => abbrev,
-            None => return Err(ReadError::Invalid(format!("missing abbrev {}", self.code))),
+            None => return Err(ReadError::Invalid),
         };
 
         self.tag = abbrev.tag;
@@ -448,7 +440,7 @@ impl<'a, 'b> AttributeData<'a> {
             }
             constant::DW_FORM_flag_present => AttributeData::Flag(true),
             constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(unit.endian.read_u64(r))),
-            _ => return Err(ReadError::Unsupported(format!("attribute form {}", form.0))),
+            _ => return Err(ReadError::Unsupported),
         };
         Ok(())
     }
@@ -456,7 +448,7 @@ impl<'a, 'b> AttributeData<'a> {
 
 fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
     if len > r.len() {
-        return Err(ReadError::Invalid(format!("block length {} > {}", len, r.len())));
+        return Err(ReadError::Invalid);
     }
     let val = &r[..len];
     *r = &r[len..];
@@ -466,7 +458,7 @@ fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
 fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
-        None => return Err(ReadError::Invalid("unterminated string".to_string())),
+        None => return Err(ReadError::Invalid),
     };
     let val = &r[..len];
     *r = &r[len + 1..];
@@ -477,7 +469,7 @@ fn read_offset<R: Read, E: Endian>(r: &mut R, endian: E, offset_size: u8) -> Res
     let val = match offset_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
-        _ => return Err(ReadError::Unsupported(format!("offset size {}", offset_size))),
+        _ => return Err(ReadError::Unsupported),
     };
     Ok(val)
 }
@@ -486,7 +478,7 @@ fn read_address<R: Read, E: Endian>(r: &mut R, endian: E, address_size: u8) -> R
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
-        _ => return Err(ReadError::Unsupported(format!("address size {}", address_size))),
+        _ => return Err(ReadError::Unsupported),
     };
     Ok(val)
 }
@@ -495,9 +487,8 @@ impl AbbrevHash {
     pub fn read<R: Read>(r: &mut R) -> Result<AbbrevHash, ReadError> {
         let mut abbrev_hash = AbbrevHash::default();
         while let Some(abbrev) = try!(Abbrev::read(r)) {
-            let code = abbrev.code;
             if abbrev_hash.insert(abbrev).is_some() {
-                return Err(ReadError::Invalid(format!("duplicate abbrev code {}", code)));
+                return Err(ReadError::Invalid);
             }
         }
         Ok(abbrev_hash)
@@ -516,7 +507,7 @@ impl Abbrev {
         let children = match constant::DwChildren(try!(r.read_u8())) {
             constant::DW_CHILDREN_no => false,
             constant::DW_CHILDREN_yes => true,
-            val => return Err(ReadError::Invalid(format!("DW_CHILDREN {}", val.0))),
+            _ => return Err(ReadError::Invalid),
         };
 
         let mut attributes = Vec::new();
