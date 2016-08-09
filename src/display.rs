@@ -127,6 +127,7 @@ impl<'a> fmt::Display for Attribute<'a> {
 impl<'a> fmt::Display for AttributeData<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            AttributeData::Null => write!(f, "(null)"),
             AttributeData::Address(val) => write!(f, "(address) {:x}", val),
             AttributeData::Block(val) => write!(f, "(block) len {}", val.len()),
             AttributeData::Data1(val) => write!(f, "(data1) {:x}", val),

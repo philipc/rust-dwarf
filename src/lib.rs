@@ -87,6 +87,7 @@ pub struct Attribute<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum AttributeData<'a> {
+    Null,
     Address(u64),
     Block(&'a [u8]),
     Data1(u8),
@@ -219,6 +220,15 @@ impl<'a> Die<'a> {
 
     pub fn is_null(&self) -> bool {
         self.code == 0
+    }
+}
+
+impl<'a> Attribute<'a> {
+    pub fn null() -> Self {
+        Attribute {
+            at: constant::DW_AT_null,
+            data: AttributeData::Null,
+        }
     }
 }
 
