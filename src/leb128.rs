@@ -75,12 +75,12 @@ pub fn write_u64<W: Write>(w: &mut W, mut value: u64) -> std::io::Result<()> {
 pub fn write_i64<W: Write>(w: &mut W, mut value: i64) -> std::io::Result<()> {
     loop {
         let byte = value as u8 & 0x7f;
-        let sign = (byte & 0x40) != 0;
-        value >>= 7;
-        if value == 0 && !sign || value == -1 && sign {
+        value >>= 6;
+        if value == 0 || value == -1 {
             try!(w.write_u8(byte));
             return Ok(());
         }
+        value >>= 1;
         try!(w.write_u8(byte | 0x80));
     }
 }
