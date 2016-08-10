@@ -3,6 +3,7 @@ use std::io::Write;
 
 use super::*;
 use leb128;
+use abbrev::*;
 
 #[derive(Debug)]
 pub enum WriteError {
@@ -225,56 +226,4 @@ fn write_address<W: Write, E: Endian>(w: &mut W, endian: E, address_size: u8, va
         _ => return Err(WriteError::Unsupported(format!("address size {}", address_size))),
     };
     Ok(())
-}
-
-impl AbbrevVec {
-    pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
-        for abbrev in self.iter() {
-            try!(abbrev.write(w));
-        }
-        try!(Abbrev::write_null(w));
-        Ok(())
-    }
-}
-
-impl Abbrev {
-    pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
-        leb128::write_u64(w, 0)
-    }
-
-    pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
-        try!(leb128::write_u64(w, self.code));
-        // This probably should never happen
-        if self.code == 0 {
-            return Ok(());
-        }
-
-        try!(leb128::write_u16(w, self.tag.0));
-
-        let children = if self.children {
-            constant::DW_CHILDREN_yes
-        } else {
-            constant::DW_CHILDREN_no
-        };
-        try!(write_u8(w, children.0));
-
-        for attribute in &self.attributes {
-            try!(attribute.write(w));
-        }
-        try!(AbbrevAttribute::write_null(w));
-
-        Ok(())
-    }
-}
-
-impl AbbrevAttribute {
-    pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
-        Self::null().write(w)
-    }
-
-    pub fn write<W: Write>(&self, w: &mut W) -> std::io::Result<()> {
-        try!(leb128::write_u16(w, self.at.0));
-        try!(leb128::write_u16(w, self.form.0));
-        Ok(())
-    }
 }

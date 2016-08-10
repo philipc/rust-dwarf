@@ -3,6 +3,7 @@ use std::ops::Deref;
 
 use super::*;
 use leb128;
+use abbrev::*;
 
 #[derive(Debug)]
 pub enum ReadError {
@@ -490,61 +491,4 @@ fn read_address<E: Endian>(r: &mut &[u8], endian: E, address_size: u8) -> Result
         _ => return Err(ReadError::Unsupported),
     };
     Ok(val)
-}
-
-impl AbbrevHash {
-    pub fn read(r: &mut &[u8]) -> Result<AbbrevHash, ReadError> {
-        let mut abbrev_hash = AbbrevHash::default();
-        while let Some(abbrev) = try!(Abbrev::read(r)) {
-            if abbrev_hash.insert(abbrev).is_some() {
-                return Err(ReadError::Invalid);
-            }
-        }
-        Ok(abbrev_hash)
-    }
-}
-
-impl Abbrev {
-    pub fn read(r: &mut &[u8]) -> Result<Option<Abbrev>, ReadError> {
-        let code = try!(leb128::read_u64(r));
-        if code == 0 {
-            return Ok(None);
-        }
-
-        let tag = try!(leb128::read_u16(r));
-
-        let children = match constant::DwChildren(try!(read_u8(r))) {
-            constant::DW_CHILDREN_no => false,
-            constant::DW_CHILDREN_yes => true,
-            _ => return Err(ReadError::Invalid),
-        };
-
-        let mut attributes = Vec::new();
-        while let Some(attribute) = try!(AbbrevAttribute::read(r)) {
-            attributes.push(attribute);
-        }
-
-        Ok(Some(Abbrev {
-            code: code,
-            tag: constant::DwTag(tag),
-            children: children,
-            attributes: attributes,
-        }))
-    }
-}
-
-impl AbbrevAttribute {
-    pub fn read(r: &mut &[u8]) -> Result<Option<AbbrevAttribute>, ReadError> {
-        let at = try!(leb128::read_u16(r));
-        let form = try!(leb128::read_u16(r));
-        let attribute = AbbrevAttribute {
-            at: constant::DwAt(at),
-            form: constant::DwForm(form),
-        };
-        if attribute.is_null() {
-            Ok(None)
-        } else {
-            Ok(Some(attribute))
-        }
-    }
 }

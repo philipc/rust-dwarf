@@ -7,6 +7,7 @@ mod write;
 #[cfg(test)]
 mod test;
 
+pub mod abbrev;
 pub mod constant;
 pub mod display;
 pub mod elf;
@@ -14,6 +15,8 @@ pub mod elf;
 pub use endian::{AnyEndian, Endian, LittleEndian, BigEndian, NativeEndian};
 pub use read::ReadError;
 pub use write::WriteError;
+
+use abbrev::AbbrevHash;
 
 #[derive(Debug)]
 pub struct Sections<E: Endian> {
@@ -104,26 +107,6 @@ pub enum AttributeData<'a> {
     RefSig(u64),
     SecOffset(u64),
     ExprLoc(&'a [u8]),
-}
-
-#[derive(Debug, Default)]
-pub struct AbbrevHash(std::collections::HashMap<u64, Abbrev>);
-
-#[derive(Debug)]
-pub struct AbbrevVec(Vec<Abbrev>);
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Abbrev {
-    pub code: u64,
-    pub tag: constant::DwTag,
-    pub children: bool,
-    pub attributes: Vec<AbbrevAttribute>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct AbbrevAttribute {
-    pub at: constant::DwAt,
-    pub form: constant::DwForm,
 }
 
 impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
@@ -229,62 +212,5 @@ impl<'a> Attribute<'a> {
             at: constant::DW_AT_null,
             data: AttributeData::Null,
         }
-    }
-}
-
-impl AbbrevHash {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn iter(&self) -> std::collections::hash_map::Iter<u64, Abbrev> {
-        self.0.iter()
-    }
-
-    pub fn get(&self, code: u64) -> Option<&Abbrev> {
-        self.0.get(&code)
-    }
-
-    pub fn insert(&mut self, abbrev: Abbrev) -> Option<Abbrev> {
-        self.0.insert(abbrev.code, abbrev)
-    }
-}
-
-impl AbbrevVec {
-    pub fn new(val: Vec<Abbrev>) -> Self {
-        AbbrevVec(val)
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<Abbrev> {
-        self.0.iter()
-    }
-}
-
-impl AbbrevAttribute {
-    pub fn null() -> Self {
-        AbbrevAttribute {
-            at: constant::DW_AT_null,
-            form: constant::DW_FORM_null,
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.at == constant::DW_AT_null && self.form == constant::DW_FORM_null
     }
 }
