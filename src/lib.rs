@@ -9,14 +9,13 @@ mod test;
 
 pub mod abbrev;
 pub mod constant;
+pub mod die;
 pub mod display;
 pub mod elf;
 
 pub use endian::{AnyEndian, Endian, LittleEndian, BigEndian, NativeEndian};
 pub use read::ReadError;
 pub use write::WriteError;
-
-use abbrev::AbbrevHash;
 
 #[derive(Debug)]
 pub struct Sections<E: Endian> {
@@ -62,51 +61,6 @@ pub struct UnitCommon<'a, E: Endian> {
     pub offset_size: u8,
     pub abbrev_offset: u64,
     pub data: Cow<'a, [u8]>,
-}
-
-#[derive(Debug)]
-pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
-    r: &'entry [u8],
-    offset: usize,
-    unit: &'a UnitCommon<'unit, E>,
-    abbrev: &'a AbbrevHash,
-    entry: Die<'entry>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Die<'a> {
-    pub offset: usize,
-    pub code: u64,
-    pub tag: constant::DwTag,
-    pub children: bool,
-    pub attributes: Vec<Attribute<'a>>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Attribute<'a> {
-    pub at: constant::DwAt,
-    pub data: AttributeData<'a>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum AttributeData<'a> {
-    Null,
-    Address(u64),
-    Block(&'a [u8]),
-    Data1(u8),
-    Data2(u16),
-    Data4(u32),
-    Data8(u64),
-    UData(u64),
-    SData(i64),
-    Flag(bool),
-    String(&'a [u8]),
-    StringOffset(u64),
-    Ref(u64),
-    RefAddress(u64),
-    RefSig(u64),
-    SecOffset(u64),
-    ExprLoc(&'a [u8]),
 }
 
 impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
@@ -179,38 +133,5 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
 
     pub fn len(&self) -> usize {
         self.data.len()
-    }
-}
-
-impl<'a> Die<'a> {
-    pub fn null(offset: usize) -> Self {
-        Die {
-            offset: offset,
-            code: 0,
-            tag: constant::DW_TAG_null,
-            children: false,
-            attributes: Vec::new(),
-        }
-    }
-
-    pub fn set_null(&mut self, offset: usize) {
-        self.offset = offset;
-        self.code = 0;
-        self.tag = constant::DW_TAG_null;
-        self.children = false;
-        self.attributes.clear();
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.code == 0
-    }
-}
-
-impl<'a> Attribute<'a> {
-    pub fn null() -> Self {
-        Attribute {
-            at: constant::DW_AT_null,
-            data: AttributeData::Null,
-        }
     }
 }

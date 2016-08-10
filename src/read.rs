@@ -2,8 +2,8 @@ use std;
 use std::ops::Deref;
 
 use super::*;
-use leb128;
 use abbrev::*;
+use die::*;
 
 #[derive(Debug)]
 pub enum ReadError {
@@ -258,205 +258,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
     }
 }
 
-#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
-    pub fn new(
-        r: &'entry [u8],
-        offset: usize,
-        unit: &'a UnitCommon<'unit, E>,
-        abbrev: &'a AbbrevHash
-    ) -> Self {
-        DieCursor {
-            r: r,
-            offset: offset,
-            unit: unit,
-            abbrev: abbrev,
-            entry: Die::null(0),
-        }
-    }
-
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    pub fn next(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
-        if self.r.len() == 0 {
-            return Ok(None);
-        }
-
-        let mut r = self.r;
-        try!(self.entry.read(&mut r, self.offset, self.unit, self.abbrev));
-        self.offset += self.r.len() - r.len();
-        self.r = r;
-        Ok(Some(&self.entry))
-    }
-
-    pub fn next_sibling(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
-        let mut depth = if self.entry.children { 1 } else { 0 };
-        while depth > 0 {
-            let mut sibling_offset = 0;
-            for attribute in &self.entry.attributes {
-                if attribute.at == constant::DW_AT_sibling {
-                    if let AttributeData::Ref(offset) = attribute.data {
-                        sibling_offset = self.unit.offset + offset as usize;
-                    }
-                    break;
-                }
-            }
-            if sibling_offset > self.offset {
-                let relative_offset = sibling_offset - self.offset;
-                if relative_offset <= self.r.len() {
-                    self.entry.set_null(0);
-                    self.offset = sibling_offset;
-                    self.r = &self.r[relative_offset..];
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                }
-            }
-            match try!(self.next()) {
-                Some(die) => {
-                    if die.is_null() {
-                        depth -= 1;
-                    } else if die.children {
-                        depth += 1;
-                    }
-                },
-                None => return Ok(None),
-            }
-        }
-        self.next()
-    }
-}
-
-impl<'a, 'b> Die<'a> {
-    pub fn read<E: Endian>(
-        &mut self,
-        r: &mut &'a [u8],
-        offset: usize,
-        unit: &UnitCommon<'b, E>,
-        abbrev_hash: &AbbrevHash,
-    ) -> Result<(), ReadError> {
-        self.set_null(offset);
-
-        self.code = try!(leb128::read_u64(r));
-        if self.code == 0 {
-            return Ok(());
-        }
-
-        let abbrev = match abbrev_hash.get(self.code) {
-            Some(abbrev) => abbrev,
-            None => return Err(ReadError::Invalid),
-        };
-
-        self.tag = abbrev.tag;
-        self.children = abbrev.children;
-        let len = abbrev.attributes.len();
-        self.attributes.reserve(len);
-        unsafe {
-            self.attributes.set_len(len);
-            for i in 0..len {
-                if let Err(e) = self.attributes[i].read(r, unit, &abbrev.attributes[i]) {
-                    self.attributes.clear();
-                    return Err(e);
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl<'a, 'b> Attribute<'a> {
-    pub fn read<E: Endian>(
-        &mut self,
-        r: &mut &'a [u8],
-        unit: &UnitCommon<'b, E>,
-        abbrev: &AbbrevAttribute,
-    ) -> Result<(), ReadError> {
-        self.at = abbrev.at;
-        try!(self.data.read(r, unit, abbrev.form));
-        Ok(())
-    }
-}
-
-impl<'a, 'b> AttributeData<'a> {
-    pub fn read<E: Endian>(
-        &mut self,
-        r: &mut &'a [u8],
-        unit: &UnitCommon<'b, E>,
-        form: constant::DwForm,
-    ) -> Result<(), ReadError> {
-        *self = match form {
-            constant::DW_FORM_addr => {
-                let val = try!(read_address(r, unit.endian, unit.address_size));
-                AttributeData::Address(val)
-            }
-            constant::DW_FORM_block2 => {
-                let len = try!(unit.endian.read_u16(r)) as usize;
-                let val = try!(read_block(r, len));
-                AttributeData::Block(val)
-            }
-            constant::DW_FORM_block4 => {
-                let len = try!(unit.endian.read_u32(r)) as usize;
-                let val = try!(read_block(r, len));
-                AttributeData::Block(val)
-            }
-            constant::DW_FORM_data2 => AttributeData::Data2(try!(unit.endian.read_u16(r))),
-            constant::DW_FORM_data4 => AttributeData::Data4(try!(unit.endian.read_u32(r))),
-            constant::DW_FORM_data8 => AttributeData::Data8(try!(unit.endian.read_u64(r))),
-            constant::DW_FORM_string => AttributeData::String(try!(read_string(r))),
-            constant::DW_FORM_block => {
-                let len = try!(leb128::read_u64(r)) as usize;
-                let val = try!(read_block(r, len));
-                AttributeData::Block(val)
-            }
-            constant::DW_FORM_block1 => {
-                let len = try!(read_u8(r)) as usize;
-                let val = try!(read_block(r, len));
-                AttributeData::Block(val)
-            }
-            constant::DW_FORM_data1 => AttributeData::Data1(try!(read_u8(r))),
-            constant::DW_FORM_flag => AttributeData::Flag(try!(read_u8(r)) != 0),
-            constant::DW_FORM_sdata => AttributeData::SData(try!(leb128::read_i64(r))),
-            constant::DW_FORM_strp => {
-                let val = try!(read_offset(r, unit.endian, unit.offset_size));
-                AttributeData::StringOffset(val)
-            }
-            constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
-            constant::DW_FORM_ref_addr => {
-                let val = try!(read_offset(r, unit.endian, unit.offset_size));
-                AttributeData::RefAddress(val)
-            }
-            constant::DW_FORM_ref1 => AttributeData::Ref(try!(read_u8(r)) as u64),
-            constant::DW_FORM_ref2 => AttributeData::Ref(try!(unit.endian.read_u16(r)) as u64),
-            constant::DW_FORM_ref4 => AttributeData::Ref(try!(unit.endian.read_u32(r)) as u64),
-            constant::DW_FORM_ref8 => AttributeData::Ref(try!(unit.endian.read_u64(r)) as u64),
-            constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r))),
-            constant::DW_FORM_indirect => {
-                let val = try!(leb128::read_u16(r));
-                return self.read(r, unit, constant::DwForm(val))
-            }
-            constant::DW_FORM_sec_offset => {
-                // TODO: validate based on class
-                let val = try!(read_offset(r, unit.endian, unit.offset_size));
-                AttributeData::SecOffset(val)
-            }
-            constant::DW_FORM_exprloc => {
-                let len = try!(leb128::read_u64(r)) as usize;
-                let val = try!(read_block(r, len));
-                AttributeData::ExprLoc(val)
-            }
-            constant::DW_FORM_flag_present => AttributeData::Flag(true),
-            constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(unit.endian.read_u64(r))),
-            _ => return Err(ReadError::Unsupported),
-        };
-        Ok(())
-    }
-}
-
-fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
+pub fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
     if len > r.len() {
         return Err(ReadError::Invalid);
     }
@@ -465,7 +267,7 @@ fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
     Ok(val)
 }
 
-fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
+pub fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
     let len = match r.iter().position(|&x| x == 0) {
         Some(len) => len,
         None => return Err(ReadError::Invalid),
@@ -475,7 +277,7 @@ fn read_string<'a>(r: &mut &'a [u8]) -> Result<&'a [u8], ReadError> {
     Ok(val)
 }
 
-fn read_offset<E: Endian>(r: &mut &[u8], endian: E, offset_size: u8) -> Result<u64, ReadError> {
+pub fn read_offset<E: Endian>(r: &mut &[u8], endian: E, offset_size: u8) -> Result<u64, ReadError> {
     let val = match offset_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),
@@ -484,7 +286,7 @@ fn read_offset<E: Endian>(r: &mut &[u8], endian: E, offset_size: u8) -> Result<u
     Ok(val)
 }
 
-fn read_address<E: Endian>(r: &mut &[u8], endian: E, address_size: u8) -> Result<u64, ReadError> {
+pub fn read_address<E: Endian>(r: &mut &[u8], endian: E, address_size: u8) -> Result<u64, ReadError> {
     let val = match address_size {
         4 => try!(endian.read_u32(r)) as u64,
         8 => try!(endian.read_u64(r)),

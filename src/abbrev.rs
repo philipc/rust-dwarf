@@ -3,8 +3,8 @@ use std::io::Write;
 
 use constant;
 use leb128;
-use read::{read_u8, ReadError};
-use write::{write_u8};
+use read::*;
+use write::*;
 
 #[derive(Debug, Default)]
 pub struct AbbrevHash(std::collections::HashMap<u64, Abbrev>);

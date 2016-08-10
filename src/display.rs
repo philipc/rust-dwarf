@@ -2,6 +2,7 @@ use std;
 use std::fmt;
 
 use super::*;
+use die::*;
 
 pub trait Formatter {
     fn indent(&mut self);
