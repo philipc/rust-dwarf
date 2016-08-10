@@ -1,13 +1,13 @@
 use std;
 use std::io::Write;
 
-use ::UnitCommon;
-use abbrev::*;
+use abbrev::{AbbrevHash, AbbrevAttribute};
 use constant;
 use endian::Endian;
 use leb128;
 use read::*;
 use write::*;
+use unit::UnitCommon;
 
 #[derive(Debug)]
 pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
@@ -424,7 +424,7 @@ mod test {
     use abbrev::*;
     use constant::*;
     use endian::*;
-    use ::UnitCommon;
+    use unit::*;
 
     #[test]
     fn die_cursor() {

@@ -1,7 +1,5 @@
 extern crate dwarf;
 
-use dwarf::*;
-
 #[test]
 fn read_and_display() {
     let path = std::env::args_os().next().unwrap();
@@ -31,8 +29,8 @@ fn read_and_write() {
         let abbrev = sections.abbrev(&read_unit.common).unwrap();
 
         let mut entries = read_unit.entries(&abbrev);
-        let mut write_unit = CompilationUnit {
-            common: UnitCommon {
+        let mut write_unit = dwarf::unit::CompilationUnit {
+            common: dwarf::unit::UnitCommon {
                 data: Default::default(),
                 ..read_unit.common
             },
