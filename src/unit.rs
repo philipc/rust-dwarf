@@ -3,8 +3,10 @@ use std::io::Write;
 use std::ops::Deref;
 
 use abbrev::AbbrevHash;
-use die::DieCursor;
+use constant;
+use die::{DieCursor, AttributeData};
 use endian::Endian;
+use line::LineNumberProgram;
 use read::*;
 use write::*;
 
@@ -77,6 +79,26 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
 
     pub fn abbrev(&self, debug_abbrev: &[u8]) -> Result<AbbrevHash, ReadError> {
         self.common.abbrev(debug_abbrev)
+    }
+
+    pub fn line<'line>(&self, mut debug_line: &'line [u8], abbrev: &AbbrevHash) -> Result<LineNumberProgram<'line, E>, ReadError> {
+        let mut entries = self.entries(abbrev);
+        if let Some(entry) = try!(entries.next()) {
+            if let Some(attr) = entry.attr(constant::DW_AT_stmt_list) {
+                let offset = match *attr {
+                    AttributeData::Data4(val) => val as u64,
+                    AttributeData::SecOffset(val) => val,
+                    _ => return Err(ReadError::Invalid),
+                };
+                return LineNumberProgram::read(
+                    &mut debug_line,
+                    offset as usize,
+                    self.common.endian,
+                    self.common.address_size,
+                );
+            }
+        }
+        Err(ReadError::Invalid)
     }
 
     pub fn entries<'cursor>(

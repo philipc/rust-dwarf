@@ -122,6 +122,10 @@ impl<'a> Die<'a> {
         self.code == 0
     }
 
+    pub fn attr(&self, at: constant::DwAt) -> Option<&AttributeData<'a>> {
+        self.attributes.iter().find(|attr| attr.at == at).map(|attr| &attr.data)
+    }
+
     pub fn read<'unit, E: Endian>(
         &mut self,
         r: &mut &'a [u8],

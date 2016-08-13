@@ -27,6 +27,11 @@ pub fn read_u8(r: &mut &[u8]) -> Result<u8, ReadError> {
     return Ok(byte)
 }
 
+#[inline]
+pub fn read_i8(r: &mut &[u8]) -> Result<i8, ReadError> {
+    read_u8(r).map(|val| val as i8)
+}
+
 pub fn read_block<'a>(r: &mut &'a [u8], len: usize) -> Result<&'a [u8], ReadError> {
     if len > r.len() {
         return Err(ReadError::Invalid);

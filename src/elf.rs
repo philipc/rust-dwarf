@@ -24,12 +24,14 @@ pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Sections<AnyEndian>, R
     };
     let debug_abbrev = get_section(&mut file, ".debug_abbrev");
     let debug_info = get_section(&mut file, ".debug_info");
+    let debug_line = get_section(&mut file, ".debug_line");
     let debug_str = get_section(&mut file, ".debug_str");
     let debug_types = get_section(&mut file, ".debug_types");
     Ok(Sections {
         endian: endian,
         debug_abbrev: debug_abbrev,
         debug_info: debug_info,
+        debug_line: debug_line,
         debug_str: debug_str,
         debug_types: debug_types,
     })

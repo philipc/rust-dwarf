@@ -8,6 +8,7 @@ pub mod constant;
 pub mod die;
 pub mod display;
 pub mod elf;
+pub mod line;
 pub mod unit;
 
 pub use endian::{AnyEndian, Endian, LittleEndian, BigEndian, NativeEndian};
@@ -19,6 +20,7 @@ pub struct Sections<E: Endian> {
     pub endian: E,
     pub debug_abbrev: Vec<u8>,
     pub debug_info: Vec<u8>,
+    pub debug_line: Vec<u8>,
     pub debug_str: Vec<u8>,
     pub debug_types: Vec<u8>,
 }
