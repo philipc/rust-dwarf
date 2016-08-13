@@ -18,6 +18,13 @@ fn display(path: &Path) -> Result<(), dwarf::ReadError> {
     while let Some(unit) = try!(units.next()) {
         let abbrev = try!(sections.abbrev(&unit.common));
         try!(unit.entries(&abbrev).display_depth(&mut f, 3));
+
+        if let Some(line_program) = try!(sections.line_program(&unit, &abbrev)) {
+            let mut lines = line_program.lines();
+            while let Some(line) = try!(lines.next()) {
+                println!("{}", line);
+            }
+        }
     }
 
     let mut units = sections.type_units();

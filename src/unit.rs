@@ -81,24 +81,30 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         self.common.abbrev(debug_abbrev)
     }
 
-    pub fn line<'line>(&self, mut debug_line: &'line [u8], abbrev: &AbbrevHash) -> Result<LineNumberProgram<'line, E>, ReadError> {
+    pub fn line_program<'line>(&self, debug_line: &'line [u8], abbrev: &AbbrevHash) -> Result<Option<LineNumberProgram<'line, E>>, ReadError> {
         let mut entries = self.entries(abbrev);
         if let Some(entry) = try!(entries.next()) {
             if let Some(attr) = entry.attr(constant::DW_AT_stmt_list) {
                 let offset = match *attr {
-                    AttributeData::Data4(val) => val as u64,
-                    AttributeData::SecOffset(val) => val,
+                    AttributeData::Data4(val) => val as usize,
+                    AttributeData::SecOffset(val) => val as usize,
                     _ => return Err(ReadError::Invalid),
                 };
+
+                if offset >= debug_line.len() {
+                    return Err(ReadError::Invalid);
+                }
+                let mut r = &debug_line[offset..];
+
                 return LineNumberProgram::read(
-                    &mut debug_line,
-                    offset as usize,
+                    &mut r,
+                    offset,
                     self.common.endian,
                     self.common.address_size,
-                );
+                ).map(|res| Some(res));
             }
         }
-        Err(ReadError::Invalid)
+        Ok(None)
     }
 
     pub fn entries<'cursor>(
@@ -327,10 +333,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         endian: E,
     ) -> Result<(UnitCommon<'a, E>, &'a [u8]), ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
-
-        // Tell the iterator we read the entire length, even if we don't parse it all now
         let mut data = &r[..len];
-        *r = &r[len..];
 
         let version = try!(endian.read_u16(&mut data));
         // TODO: is this correct?
@@ -341,6 +344,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         let abbrev_offset = try!(read_offset(&mut data, endian, offset_size));
         let address_size = try!(read_u8(&mut data));
 
+        *r = &r[len..];
         Ok((UnitCommon {
             offset: offset,
             endian: endian,

@@ -37,3 +37,21 @@ fn read_info(b: &mut test::Bencher) {
         }
     });
 }
+
+#[bench]
+fn read_line(b: &mut test::Bencher) {
+    let path = std::env::args_os().next().unwrap(); // Note: not constant
+    let sections = dwarf::elf::load(path).unwrap();
+    b.iter(|| {
+        let mut units = sections.compilation_units();
+        while let Some(unit) = units.next().unwrap() {
+            let abbrev = sections.abbrev(&unit.common).unwrap();
+            if let Some(line_program) = sections.line_program(&unit, &abbrev).unwrap() {
+                let mut lines = line_program.lines();
+                while let Some(line) = lines.next().unwrap() {
+                    test::black_box(line);
+                }
+            }
+        }
+    });
+}

@@ -37,4 +37,8 @@ impl<E: Endian> Sections<E> {
     pub fn abbrev<'a>(&self, unit: &unit::UnitCommon<'a, E>) -> Result<abbrev::AbbrevHash, ReadError> {
         unit.abbrev(&*self.debug_abbrev)
     }
+
+    pub fn line_program(&self, unit: &unit::CompilationUnit<E>, abbrev: &abbrev::AbbrevHash) -> Result<Option<line::LineNumberProgram<E>>, ReadError> {
+        unit.line_program(&*self.debug_line, abbrev)
+    }
 }

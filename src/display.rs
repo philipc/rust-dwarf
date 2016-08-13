@@ -3,6 +3,7 @@ use std::fmt;
 
 use super::*;
 use die::*;
+use line::*;
 
 pub trait Formatter {
     fn indent(&mut self);
@@ -320,5 +321,39 @@ impl fmt::Display for constant::DwAt {
             constant::DW_AT_linkage_name => write!(f, "linkage_name"),
             _ => write!(f, "attr({})", self.0),
         }
+    }
+}
+
+impl<'a> fmt::Display for Line<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "{:08x} {}, {}", self.address, self.line, self.column));
+        if self.is_stmt {
+            try!(write!(f, " NS"));
+        }
+        if self.basic_block {
+            try!(write!(f, " BB"));
+        }
+        if self.end_sequence {
+            try!(write!(f, " ET"));
+        }
+        if self.prologue_end {
+            try!(write!(f, " PE"));
+        }
+        if self.epilogue_begin {
+            try!(write!(f, " EB"));
+        }
+        if self.isa != 0 {
+            try!(write!(f, " IS={}", self.isa));
+        }
+        if self.discriminator != 0 {
+            try!(write!(f, " DI={}", self.discriminator));
+        }
+        if self.file.path.len() > 0 {
+            match std::str::from_utf8(self.file.path) {
+                Ok(val) => try!(write!(f, " uri: {}", val)),
+                Err(_) => try!(write!(f, " uri: len {}", self.file.path.len())),
+            }
+        }
+        Ok(())
     }
 }
