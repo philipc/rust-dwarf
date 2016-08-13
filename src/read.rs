@@ -63,3 +63,18 @@ pub fn read_address<E: Endian>(r: &mut &[u8], endian: E, address_size: u8) -> Re
     };
     Ok(val)
 }
+
+pub fn read_initial_length<E: Endian>(r: &mut &[u8], endian: E) -> Result<(u8, usize), ReadError> {
+        let mut offset_size = 4;
+        let mut len = try!(endian.read_u32(r)) as usize;
+        if len == 0xffffffff {
+            offset_size = 8;
+            len = try!(endian.read_u64(r)) as usize;
+        } else if len >= 0xfffffff0 {
+            return Err(ReadError::Unsupported);
+        }
+        if len > r.len() {
+            return Err(ReadError::Invalid);
+        }
+        Ok((offset_size, len))
+}
