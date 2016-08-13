@@ -327,13 +327,13 @@ impl fmt::Display for constant::DwAt {
 impl<'a> fmt::Display for Line<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{:08x} {}, {}", self.address, self.line, self.column));
-        if self.is_stmt {
+        if self.statement {
             try!(write!(f, " NS"));
         }
         if self.basic_block {
             try!(write!(f, " BB"));
         }
-        if self.end_sequence {
+        if self.sequence_end {
             try!(write!(f, " ET"));
         }
         if self.prologue_end {

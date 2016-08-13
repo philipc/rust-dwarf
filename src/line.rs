@@ -12,9 +12,9 @@ pub struct LineNumberProgram<'a, E: Endian> {
     pub version: u16,
     pub address_size: u8,
     pub offset_size: u8,
-    pub minimum_instruction_length: u8,
-    pub maximum_operations_per_instruction: u8,
-    pub default_is_stmt: bool,
+    pub address_step: u8,
+    pub operation_range: u8,
+    pub default_statement: bool,
     pub line_base: i8,
     pub line_range: u8,
     pub opcode_base: u8,
@@ -50,21 +50,21 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
         let mut header = &data[..header_length];
         let data = &data[header_length..];
 
-        let minimum_instruction_length = try!(read_u8(&mut header));
-        if minimum_instruction_length == 0 {
+        let address_step = try!(read_u8(&mut header));
+        if address_step == 0 {
             return Err(ReadError::Invalid);
         }
 
-        let maximum_operations_per_instruction = if version >= 4 {
+        let operation_range = if version >= 4 {
             try!(read_u8(&mut header))
         } else {
             1
         };
-        if maximum_operations_per_instruction == 0 {
+        if operation_range == 0 {
             return Err(ReadError::Invalid);
         }
 
-        let default_is_stmt = try!(read_u8(&mut header)) != 0;
+        let default_statement = try!(read_u8(&mut header)) != 0;
         let line_base = try!(read_i8(&mut header));
         let line_range = try!(read_u8(&mut header));
         let opcode_base = try!(read_u8(&mut header));
@@ -109,9 +109,9 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
             version: version,
             address_size: address_size,
             offset_size: offset_size,
-            minimum_instruction_length: minimum_instruction_length,
-            maximum_operations_per_instruction: maximum_operations_per_instruction,
-            default_is_stmt: default_is_stmt,
+            address_step: address_step,
+            operation_range: operation_range,
+            default_statement: default_statement,
             line_base: line_base,
             line_range: line_range,
             opcode_base: opcode_base,
@@ -139,7 +139,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             program: program,
             data: program.data.as_ref(),
             files: Vec::new(),
-            line: Line::new(program.default_is_stmt),
+            line: Line::new(program.default_statement),
             file: 1,
             copy: false,
             reset: false,
@@ -151,8 +151,8 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             return Ok(None);
         }
 
-        if self.line.end_sequence {
-            self.line = Line::new(self.program.default_is_stmt);
+        if self.line.sequence_end {
+            self.line = Line::new(self.program.default_statement);
             self.file = 1;
         }
 
@@ -188,7 +188,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             constant::DW_LNS_advance_line => self.advance_line(try!(leb128::read_i64(r))),
             constant::DW_LNS_set_file => self.file = try!(leb128::read_u64(r)) as usize,
             constant::DW_LNS_set_column => self.line.column = try!(leb128::read_u64(r)),
-            constant::DW_LNS_negate_stmt => self.line.is_stmt = !self.line.is_stmt,
+            constant::DW_LNS_negate_stmt => self.line.statement = !self.line.statement,
             constant::DW_LNS_set_basic_block => self.line.basic_block = true,
             constant::DW_LNS_const_add_pc => {
                 let op_delta = (255 - self.program.opcode_base) / self.program.line_range;
@@ -196,7 +196,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             }
             constant::DW_LNS_fixed_advance_pc => {
                 self.line.address += try!(self.program.endian.read_u16(r)) as u64;
-                self.line.op_index = 0;
+                self.line.operation = 0;
             }
             constant::DW_LNS_set_prologue_end => self.line.prologue_end = true,
             constant::DW_LNS_set_epilogue_begin => self.line.epilogue_begin = true,
@@ -232,12 +232,12 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         match constant::DwLne(opcode) {
             constant::DwLne(0) => return Err(ReadError::Invalid),
             constant::DW_LNE_end_sequence => {
-                self.line.end_sequence = true;
+                self.line.sequence_end = true;
                 self.copy = true;
             }
             constant::DW_LNE_set_address => {
                 self.line.address = try!(read_address(&mut data, self.program.endian, self.program.address_size));
-                self.line.op_index = 0;
+                self.line.operation = 0;
             }
             constant::DW_LNE_define_file => {
                 self.files.push(try!(FileEntry::read(&mut data)));
@@ -260,10 +260,10 @@ impl<'a, E: Endian> LineIterator<'a, E> {
     }
 
     fn advance_pc(&mut self, op_delta: u64) {
-        let op_index = self.line.op_index + op_delta;
-        let address_delta = op_index / self.program.maximum_operations_per_instruction as u64;
-        self.line.op_index = op_index % self.program.maximum_operations_per_instruction as u64;
-        self.line.address += self.program.minimum_instruction_length as u64 * address_delta;
+        let operation = self.line.operation + op_delta;
+        let address_delta = operation / self.program.operation_range as u64;
+        self.line.operation = operation % self.program.operation_range as u64;
+        self.line.address += self.program.address_step as u64 * address_delta;
     }
 
     fn advance_line(&mut self, delta: i64) {
@@ -297,13 +297,13 @@ impl<'a, E: Endian> LineIterator<'a, E> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Line<'a> {
     pub address: u64,
-    pub op_index: u64,
+    pub operation: u64,
     pub file: FileEntry<'a>,
     pub line: u64,
     pub column: u64,
-    pub is_stmt: bool,
+    pub statement: bool,
     pub basic_block: bool,
-    pub end_sequence: bool,
+    pub sequence_end: bool,
     pub prologue_end: bool,
     pub epilogue_begin: bool,
     pub isa: u64,
@@ -311,16 +311,16 @@ pub struct Line<'a> {
 }
 
 impl<'a> Line<'a> {
-    fn new(is_stmt: bool) -> Self {
+    fn new(statement: bool) -> Self {
         Line {
             address: 0,
-            op_index: 0,
+            operation: 0,
             file: FileEntry::default(),
             line: 1,
             column: 0,
-            is_stmt: is_stmt,
+            statement: statement,
             basic_block: false,
-            end_sequence: false,
+            sequence_end: false,
             prologue_end: false,
             epilogue_begin: false,
             isa: 0,
