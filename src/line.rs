@@ -123,14 +123,13 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
     }
 }
 
-pub struct LineIterator<'a, E: 'a+Endian> {
+pub struct LineIterator<'a, E: 'a + Endian> {
     program: &'a LineNumberProgram<'a, E>,
     data: &'a [u8],
     files: Vec<FileEntry<'a>>,
     line: Line<'a>,
     file: usize,
     copy: bool,
-    reset: bool,
 }
 
 impl<'a, E: Endian> LineIterator<'a, E> {
@@ -142,7 +141,6 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             line: Line::new(program.default_statement),
             file: 1,
             copy: false,
-            reset: false,
         }
     }
 
@@ -154,14 +152,11 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         if self.line.sequence_end {
             self.line = Line::new(self.program.default_statement);
             self.file = 1;
-        }
-
-        if self.reset {
+        } else {
             self.line.basic_block = false;
             self.line.prologue_end = false;
             self.line.epilogue_begin = false;
             self.line.discriminator = 0;
-            self.reset = false;
         }
 
         let mut r = self.data;
@@ -180,10 +175,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         let opcode = try!(read_u8(r));
         match constant::DwLns(opcode) {
             constant::DW_LNS_extended => try!(self.next_extended(r)),
-            constant::DW_LNS_copy => {
-                self.copy = true;
-                self.reset = true;
-            }
+            constant::DW_LNS_copy => self.copy = true,
             constant::DW_LNS_advance_pc => self.advance_pc(try!(leb128::read_u64(r))),
             constant::DW_LNS_advance_line => self.advance_line(try!(leb128::read_i64(r))),
             constant::DW_LNS_set_file => self.file = try!(leb128::read_u64(r)) as usize,
@@ -236,7 +228,8 @@ impl<'a, E: Endian> LineIterator<'a, E> {
                 self.copy = true;
             }
             constant::DW_LNE_set_address => {
-                self.line.address = try!(read_address(&mut data, self.program.endian, self.program.address_size));
+                self.line.address =
+                    try!(read_address(&mut data, self.program.endian, self.program.address_size));
                 self.line.operation = 0;
             }
             constant::DW_LNE_define_file => {
@@ -245,7 +238,9 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             constant::DW_LNE_set_discriminator => {
                 self.line.discriminator = try!(leb128::read_u64(&mut data));
             }
-            _ => {},
+            _ => {
+                // Unknown opcode, we've already skipped over it
+            }
         }
         Ok(())
     }
