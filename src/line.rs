@@ -199,17 +199,17 @@ impl<'a, E: Endian> LineIterator<'a, E> {
             constant::DW_LNS_set_epilogue_begin => self.line.epilogue_begin = true,
             constant::DW_LNS_set_isa => self.line.isa = try!(leb128::read_u64(r)),
             _ => {
-                let opcode = opcode as usize;
-                if opcode < self.program.opcode_base as usize {
+                if opcode < self.program.opcode_base {
                     // Unknown opcode, skip over it
-                    if opcode - 1 >= self.program.standard_opcode_lengths.len() {
+                    let index = opcode as usize - 1;
+                    if index >= self.program.standard_opcode_lengths.len() {
                         return Err(ReadError::Invalid);
                     }
-                    for _ in 0..self.program.standard_opcode_lengths[opcode - 1] {
+                    for _ in 0..self.program.standard_opcode_lengths[index] {
                         try!(leb128::read_u64(r));
                     }
                 } else {
-                    self.advance_special(opcode as u64);
+                    self.advance_special(opcode);
                     self.copy = true;
                 }
             }
@@ -250,12 +250,12 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         Ok(())
     }
 
-    fn advance_special(&mut self, opcode: u64) {
-        let delta = opcode - self.program.opcode_base as u64;
-        let op_delta = delta / self.program.line_range as u64;
-        let line_delta = delta % self.program.line_range as u64;
+    fn advance_special(&mut self, opcode: u8) {
+        let delta = opcode - self.program.opcode_base;
+        let op_delta = delta / self.program.line_range;
+        let line_delta = delta % self.program.line_range;
         let line_delta = self.program.line_base as i64 + line_delta as i64;
-        self.advance_pc(op_delta);
+        self.advance_pc(op_delta as u64);
         self.advance_line(line_delta);
     }
 
