@@ -66,13 +66,18 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
 
         let default_statement = try!(read_u8(&mut header)) != 0;
         let line_base = try!(read_i8(&mut header));
+
         let line_range = try!(read_u8(&mut header));
+        if line_range == 0 {
+            return Err(ReadError::Invalid);
+        }
+
         let opcode_base = try!(read_u8(&mut header));
-        let standard_opcode_lengths = if opcode_base > 0 {
-            try!(read_block(&mut header, opcode_base as usize - 1))
-        } else {
-            &[]
-        };
+        if opcode_base == 0 {
+            return Err(ReadError::Invalid);
+        }
+
+        let standard_opcode_lengths = try!(read_block(&mut header, opcode_base as usize - 1));
 
         let mut include_directories = Vec::new();
         loop {
