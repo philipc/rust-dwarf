@@ -24,7 +24,7 @@ pub fn read_u8(r: &mut &[u8]) -> Result<u8, ReadError> {
     }
     let byte = r[0];
     *r = &r[1..];
-    return Ok(byte);
+    Ok(byte)
 }
 
 #[inline]

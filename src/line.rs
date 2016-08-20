@@ -149,6 +149,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         }
     }
 
+    #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
     pub fn next(&mut self) -> Result<Option<&Line>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);

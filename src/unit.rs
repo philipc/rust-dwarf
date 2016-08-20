@@ -17,7 +17,6 @@ pub struct CompilationUnitIterator<'a, E: Endian> {
     offset: usize,
 }
 
-#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
     pub fn new(endian: E, data: &'a [u8]) -> Self {
         CompilationUnitIterator {
@@ -31,6 +30,7 @@ impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
         self.offset
     }
 
+    #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
     pub fn next(&mut self) -> Result<Option<CompilationUnit<'a, E>>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
@@ -102,7 +102,7 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
                                                offset,
                                                self.common.endian,
                                                self.common.address_size)
-                    .map(|res| Some(res));
+                    .map(Some);
             }
         }
         Ok(None)
@@ -148,7 +148,6 @@ pub struct TypeUnitIterator<'a, E: Endian> {
     offset: usize,
 }
 
-#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a, E: Endian> TypeUnitIterator<'a, E> {
     pub fn new(endian: E, data: &'a [u8]) -> Self {
         TypeUnitIterator {
@@ -162,6 +161,7 @@ impl<'a, E: Endian> TypeUnitIterator<'a, E> {
         self.offset
     }
 
+    #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
     pub fn next(&mut self) -> Result<Option<TypeUnit<'a, E>>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
@@ -281,6 +281,7 @@ impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
     }
 }
 
+#[cfg_attr(feature = "clippy", allow(len_without_is_empty))]
 impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn data(&'a self) -> &'a [u8] {
         &*self.data

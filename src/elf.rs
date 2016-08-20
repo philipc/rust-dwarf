@@ -5,6 +5,7 @@ use std;
 use super::{ReadError, AnyEndian, Sections};
 
 impl std::convert::From<elf::ParseError> for ReadError {
+    #[cfg_attr(feature = "clippy", allow(match_same_arms))]
     fn from(e: elf::ParseError) -> Self {
         match e {
             elf::ParseError::IoError(_) => ReadError::Io,

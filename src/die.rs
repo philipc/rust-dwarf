@@ -18,7 +18,6 @@ pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a + Endian> {
     entry: Die<'entry>,
 }
 
-#[cfg_attr(feature = "clippy", allow(should_implement_trait))]
 impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
     pub fn new(
         r: &'entry [u8],
@@ -39,6 +38,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
         self.offset
     }
 
+    #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
     pub fn next(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
         if self.r.len() == 0 {
             return Ok(None);
@@ -162,7 +162,7 @@ impl<'a> Die<'a> {
         Ok(())
     }
 
-    pub fn write_null<'unit, E: Endian>(unit: &mut UnitCommon<'unit, E>) -> std::io::Result<()> {
+    pub fn write_null<E: Endian>(unit: &mut UnitCommon<E>) -> std::io::Result<()> {
         let w = unit.data.to_mut();
         leb128::write_u64(w, 0)
     }
@@ -331,6 +331,7 @@ impl<'a> AttributeData<'a> {
         Ok(())
     }
 
+    #[cfg_attr(feature = "clippy", allow(match_same_arms))]
     pub fn write<'unit, E: Endian>(
         &self,
         unit: &mut UnitCommon<'unit, E>,
@@ -345,19 +346,19 @@ impl<'a> AttributeData<'a> {
             (&AttributeData::Address(ref val), constant::DW_FORM_addr) => {
                 try!(write_address(w, unit.endian, unit.address_size, *val));
             }
-            (&AttributeData::Block(ref val), constant::DW_FORM_block1) => {
+            (&AttributeData::Block(val), constant::DW_FORM_block1) => {
                 try!(write_u8(w, val.len() as u8));
                 try!(w.write_all(val));
             }
-            (&AttributeData::Block(ref val), constant::DW_FORM_block2) => {
+            (&AttributeData::Block(val), constant::DW_FORM_block2) => {
                 try!(unit.endian.write_u16(w, val.len() as u16));
                 try!(w.write_all(val));
             }
-            (&AttributeData::Block(ref val), constant::DW_FORM_block4) => {
+            (&AttributeData::Block(val), constant::DW_FORM_block4) => {
                 try!(unit.endian.write_u32(w, val.len() as u32));
                 try!(w.write_all(val));
             }
-            (&AttributeData::Block(ref val), constant::DW_FORM_block) => {
+            (&AttributeData::Block(val), constant::DW_FORM_block) => {
                 try!(leb128::write_u64(w, val.len() as u64));
                 try!(w.write_all(val));
             }
@@ -385,7 +386,7 @@ impl<'a> AttributeData<'a> {
             (&AttributeData::Flag(ref val), constant::DW_FORM_flag_present) => {
                 assert!(*val);
             }
-            (&AttributeData::String(ref val), constant::DW_FORM_string) => {
+            (&AttributeData::String(val), constant::DW_FORM_string) => {
                 try!(w.write_all(val));
                 try!(write_u8(w, 0));
             }
@@ -420,7 +421,7 @@ impl<'a> AttributeData<'a> {
             (&AttributeData::SecOffset(ref val), constant::DW_FORM_sec_offset) => {
                 try!(write_offset(w, unit.endian, unit.offset_size, *val));
             }
-            (&AttributeData::ExprLoc(ref val), constant::DW_FORM_exprloc) => {
+            (&AttributeData::ExprLoc(val), constant::DW_FORM_exprloc) => {
                 try!(leb128::write_u64(w, val.len() as u64));
                 try!(w.write_all(val));
             }
