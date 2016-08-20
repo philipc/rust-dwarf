@@ -298,7 +298,11 @@ impl<'a> AttributeData<'a> {
             }
             constant::DW_FORM_udata => AttributeData::UData(try!(leb128::read_u64(r))),
             constant::DW_FORM_ref_addr => {
-                let val = try!(read_offset(r, unit.endian, unit.offset_size));
+                let val = if unit.version == 2 {
+                    try!(read_address(r, unit.endian, unit.address_size))
+                } else {
+                    try!(read_offset(r, unit.endian, unit.offset_size))
+                };
                 AttributeData::RefAddress(val)
             }
             constant::DW_FORM_ref1 => AttributeData::Ref(try!(read_u8(r)) as u64),
@@ -404,7 +408,11 @@ impl<'a> AttributeData<'a> {
                 try!(leb128::write_u64(w, *val as u64));
             },
             (&AttributeData::RefAddress(ref val), constant::DW_FORM_ref_addr) => {
-                try!(write_offset(w, unit.endian, unit.offset_size, *val));
+                if unit.version == 2 {
+                    try!(write_address(w, unit.endian, unit.address_size, *val));
+                } else {
+                    try!(write_offset(w, unit.endian, unit.offset_size, *val));
+                }
             },
             (&AttributeData::RefSig(ref val), constant::DW_FORM_ref_sig8) => {
                 try!(unit.endian.write_u64(w, *val));
@@ -617,6 +625,16 @@ mod test {
             (AttributeData::RefAddress(0x0123456789), DW_FORM_ref_addr,
                 &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
             (AttributeData::SecOffset(0x0123456789), DW_FORM_sec_offset,
+                &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
+        ] {
+            attribute_data_inner(&mut unit, write_val, form, expect);
+        }
+
+        unit.version = 2;
+        unit.address_size = 8;
+        unit.offset_size = 4;
+        for &(ref write_val, form, expect) in &[
+            (AttributeData::RefAddress(0x0123456789), DW_FORM_ref_addr,
                 &[0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00][..]),
         ] {
             attribute_data_inner(&mut unit, write_val, form, expect);
