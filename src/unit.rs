@@ -49,11 +49,9 @@ pub struct CompilationUnit<'a, E: Endian> {
     pub common: UnitCommon<'a, E>,
 }
 
-impl<'a, E: Endian+Default> Default for CompilationUnit<'a, E> {
+impl<'a, E: Endian + Default> Default for CompilationUnit<'a, E> {
     fn default() -> Self {
-        CompilationUnit {
-            common: Default::default(),
-        }
+        CompilationUnit { common: Default::default() }
     }
 }
 
@@ -81,7 +79,11 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         self.common.abbrev(debug_abbrev)
     }
 
-    pub fn line_program<'line>(&self, debug_line: &'line [u8], abbrev: &AbbrevHash) -> Result<Option<LineNumberProgram<'line, E>>, ReadError> {
+    pub fn line_program<'line>(
+        &self,
+        debug_line: &'line [u8],
+        abbrev: &AbbrevHash
+    ) -> Result<Option<LineNumberProgram<'line, E>>, ReadError> {
         let mut entries = self.entries(abbrev);
         if let Some(entry) = try!(entries.next()) {
             if let Some(attr) = entry.attr(constant::DW_AT_stmt_list) {
@@ -96,12 +98,11 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
                 }
                 let mut r = &debug_line[offset..];
 
-                return LineNumberProgram::read(
-                    &mut r,
-                    offset,
-                    self.common.endian,
-                    self.common.address_size,
-                ).map(|res| Some(res));
+                return LineNumberProgram::read(&mut r,
+                                               offset,
+                                               self.common.endian,
+                                               self.common.address_size)
+                    .map(|res| Some(res));
             }
         }
         Ok(None)
@@ -109,7 +110,7 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
 
     pub fn entries<'cursor>(
         &'a self,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> DieCursor<'cursor, 'a, 'a, E> {
         self.common.entries(self.data_offset(), abbrev)
     }
@@ -117,7 +118,7 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn entry<'cursor>(
         &'a self,
         offset: usize,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
@@ -125,13 +126,11 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        endian: E,
+        endian: E
     ) -> Result<CompilationUnit<'a, E>, ReadError> {
         let (mut common, data) = try!(UnitCommon::read(r, offset, endian));
         common.data = From::from(data);
-        Ok(CompilationUnit {
-            common: common,
-        })
+        Ok(CompilationUnit { common: common })
     }
 
     pub fn write<W: Write>(&self, w: &mut W) -> Result<(), WriteError> {
@@ -209,31 +208,27 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
 
     pub fn entries<'cursor>(
         &'a self,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> DieCursor<'cursor, 'a, 'a, E> {
-        self.common.entries(self.data_offset(), abbrev, )
+        self.common.entries(self.data_offset(), abbrev)
     }
 
     pub fn entry<'cursor>(
         &'a self,
         offset: usize,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
 
     pub fn type_entry<'cursor>(
         &'a self,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
         self.common.entry(self.data_offset(), self.type_offset as usize, abbrev)
     }
 
-    pub fn read(
-        r: &mut &'a [u8],
-        offset: usize,
-        endian: E,
-    ) -> Result<TypeUnit<'a, E>, ReadError> {
+    pub fn read(r: &mut &'a [u8], offset: usize, endian: E) -> Result<TypeUnit<'a, E>, ReadError> {
         let (mut common, mut data) = try!(UnitCommon::read(r, offset, endian));
 
         // Read the remaining fields out of data
@@ -252,7 +247,10 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         let len = Self::base_header_len(self.common.offset_size) + self.common.len();
         try!(self.common.write(w, len));
         try!(self.common.endian.write_u64(w, self.type_signature));
-        try!(write_offset(w, self.common.endian, self.common.offset_size, self.type_offset));
+        try!(write_offset(w,
+                          self.common.endian,
+                          self.common.offset_size,
+                          self.type_offset));
         try!(w.write_all(self.data()));
         Ok(())
     }
@@ -269,7 +267,7 @@ pub struct UnitCommon<'a, E: Endian> {
     pub data: Cow<'a, [u8]>,
 }
 
-impl<'a, E: Endian+Default> Default for UnitCommon<'a, E> {
+impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
     fn default() -> Self {
         UnitCommon {
             offset: 0,
@@ -304,7 +302,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn entries<'cursor>(
         &'a self,
         data_offset: usize,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> DieCursor<'cursor, 'a, 'a, E> {
         // Unfortunately, entry lifetime is restricted to that of self
         // because self.data might be owned
@@ -315,7 +313,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         &'a self,
         data_offset: usize,
         offset: usize,
-        abbrev: &'cursor AbbrevHash,
+        abbrev: &'cursor AbbrevHash
     ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
         if offset < data_offset {
             return None;
@@ -330,7 +328,7 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
     pub fn read(
         r: &mut &'a [u8],
         offset: usize,
-        endian: E,
+        endian: E
     ) -> Result<(UnitCommon<'a, E>, &'a [u8]), ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];
@@ -353,7 +351,8 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
             offset_size: offset_size,
             abbrev_offset: abbrev_offset,
             data: Default::default(),
-        }, data))
+        },
+            data))
     }
 
     pub fn write<W: Write>(&self, w: &mut W, len: usize) -> Result<(), WriteError> {
@@ -383,6 +382,7 @@ mod test {
     use endian::*;
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn compilation_unit_32() {
         let offset = 0;
         let offset_size = 4;
@@ -418,6 +418,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn compilation_unit_64() {
         let offset = 0;
         let offset_size = 8;
@@ -453,6 +454,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn type_unit_32() {
         let offset = 0;
         let offset_size = 4;
@@ -492,6 +494,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn type_unit_64() {
         let offset = 0;
         let offset_size = 8;

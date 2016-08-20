@@ -69,7 +69,11 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
         Ok(())
     }
 
-    pub fn display_depth<F: Formatter>(&mut self, f: &mut F, max_depth: usize) -> Result<(), ReadError> {
+    pub fn display_depth<F: Formatter>(
+        &mut self,
+        f: &mut F,
+        max_depth: usize
+    ) -> Result<(), ReadError> {
         let mut depth = 1;
         let mut next_sibling = false;
         loop {

@@ -33,7 +33,7 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
         r: &mut &'a [u8],
         offset: usize,
         endian: E,
-        address_size: u8,
+        address_size: u8
     ) -> Result<LineNumberProgram<'a, E>, ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];

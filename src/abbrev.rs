@@ -239,7 +239,10 @@ mod test {
 
     #[test]
     fn abbrev_attribute() {
-        let write_val = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };
+        let write_val = AbbrevAttribute {
+            at: DW_AT_sibling,
+            form: DW_FORM_ref4,
+        };
 
         let mut buf = Vec::new();
         write_val.write(&mut buf).unwrap();

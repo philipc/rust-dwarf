@@ -44,7 +44,7 @@ pub fn read_i64(r: &mut &[u8]) -> Result<i64, ReadError> {
 pub fn read_u16(r: &mut &[u8]) -> Result<u16, ReadError> {
     let val = try!(read_u64(r));
     if val > std::u16::MAX as u64 {
-            return Err(ReadError::Overflow);
+        return Err(ReadError::Overflow);
     }
     Ok(val as u16)
 }
@@ -86,6 +86,7 @@ mod test {
     use std;
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_u16() {
         let mut vec = Vec::new();
 
@@ -141,6 +142,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_u64() {
         let mut vec = Vec::new();
 
@@ -209,6 +211,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn test_i64() {
         let mut vec = Vec::new();
 

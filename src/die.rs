@@ -10,7 +10,7 @@ use write::*;
 use unit::UnitCommon;
 
 #[derive(Debug)]
-pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a+Endian> {
+pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a + Endian> {
     r: &'entry [u8],
     offset: usize,
     unit: &'a UnitCommon<'unit, E>,
@@ -82,7 +82,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
                     } else if die.children {
                         depth += 1;
                     }
-                },
+                }
                 None => return Ok(None),
             }
         }
@@ -131,7 +131,7 @@ impl<'a> Die<'a> {
         r: &mut &'a [u8],
         offset: usize,
         unit: &UnitCommon<'unit, E>,
-        abbrev_hash: &AbbrevHash,
+        abbrev_hash: &AbbrevHash
     ) -> Result<(), ReadError> {
         self.set_null(offset);
 
@@ -170,7 +170,7 @@ impl<'a> Die<'a> {
     pub fn write<'unit, E: Endian>(
         &self,
         unit: &mut UnitCommon<'unit, E>,
-        abbrev_hash: &AbbrevHash,
+        abbrev_hash: &AbbrevHash
     ) -> Result<(), WriteError> {
         if self.code == 0 {
             try!(Die::write_null(unit));
@@ -212,7 +212,7 @@ impl<'a> Attribute<'a> {
         &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'unit, E>,
-        abbrev: &AbbrevAttribute,
+        abbrev: &AbbrevAttribute
     ) -> Result<(), ReadError> {
         self.at = abbrev.at;
         try!(self.data.read(r, unit, abbrev.form));
@@ -222,7 +222,7 @@ impl<'a> Attribute<'a> {
     pub fn write<'unit, E: Endian>(
         &self,
         unit: &mut UnitCommon<'unit, E>,
-        abbrev: &AbbrevAttribute,
+        abbrev: &AbbrevAttribute
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
             return Err(WriteError::Invalid("attribute type mismatch".to_string()));
@@ -258,7 +258,7 @@ impl<'a> AttributeData<'a> {
         &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'unit, E>,
-        form: constant::DwForm,
+        form: constant::DwForm
     ) -> Result<(), ReadError> {
         *self = match form {
             constant::DW_FORM_addr => {
@@ -312,7 +312,7 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r))),
             constant::DW_FORM_indirect => {
                 let val = try!(leb128::read_u16(r));
-                return self.read(r, unit, constant::DwForm(val))
+                return self.read(r, unit, constant::DwForm(val));
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
@@ -335,7 +335,7 @@ impl<'a> AttributeData<'a> {
         &self,
         unit: &mut UnitCommon<'unit, E>,
         form: constant::DwForm,
-        indirect: bool,
+        indirect: bool
     ) -> Result<(), WriteError> {
         let w = unit.data.to_mut();
         if indirect {
@@ -344,86 +344,86 @@ impl<'a> AttributeData<'a> {
         match (self, form) {
             (&AttributeData::Address(ref val), constant::DW_FORM_addr) => {
                 try!(write_address(w, unit.endian, unit.address_size, *val));
-            },
+            }
             (&AttributeData::Block(ref val), constant::DW_FORM_block1) => {
                 try!(write_u8(w, val.len() as u8));
                 try!(w.write_all(val));
-            },
+            }
             (&AttributeData::Block(ref val), constant::DW_FORM_block2) => {
                 try!(unit.endian.write_u16(w, val.len() as u16));
                 try!(w.write_all(val));
-            },
+            }
             (&AttributeData::Block(ref val), constant::DW_FORM_block4) => {
                 try!(unit.endian.write_u32(w, val.len() as u32));
                 try!(w.write_all(val));
-            },
+            }
             (&AttributeData::Block(ref val), constant::DW_FORM_block) => {
                 try!(leb128::write_u64(w, val.len() as u64));
                 try!(w.write_all(val));
-            },
+            }
             (&AttributeData::Data1(ref val), constant::DW_FORM_data1) => {
                 try!(write_u8(w, *val));
-            },
+            }
             (&AttributeData::Data2(ref val), constant::DW_FORM_data2) => {
                 try!(unit.endian.write_u16(w, *val));
-            },
+            }
             (&AttributeData::Data4(ref val), constant::DW_FORM_data4) => {
                 try!(unit.endian.write_u32(w, *val));
-            },
+            }
             (&AttributeData::Data8(ref val), constant::DW_FORM_data8) => {
                 try!(unit.endian.write_u64(w, *val));
-            },
+            }
             (&AttributeData::UData(ref val), constant::DW_FORM_udata) => {
                 try!(leb128::write_u64(w, *val));
-            },
+            }
             (&AttributeData::SData(ref val), constant::DW_FORM_sdata) => {
                 try!(leb128::write_i64(w, *val));
-            },
+            }
             (&AttributeData::Flag(ref val), constant::DW_FORM_flag) => {
                 try!(write_u8(w, if *val { 1 } else { 0 }));
-            },
+            }
             (&AttributeData::Flag(ref val), constant::DW_FORM_flag_present) => {
                 assert!(*val);
-            },
+            }
             (&AttributeData::String(ref val), constant::DW_FORM_string) => {
                 try!(w.write_all(val));
                 try!(write_u8(w, 0));
-            },
+            }
             (&AttributeData::StringOffset(ref val), constant::DW_FORM_strp) => {
                 try!(write_offset(w, unit.endian, unit.offset_size, *val));
-            },
+            }
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref1) => {
                 try!(write_u8(w, *val as u8));
-            },
+            }
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref2) => {
                 try!(unit.endian.write_u16(w, *val as u16));
-            },
+            }
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref4) => {
                 try!(unit.endian.write_u32(w, *val as u32));
-            },
+            }
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref8) => {
                 try!(unit.endian.write_u64(w, *val as u64));
-            },
+            }
             (&AttributeData::Ref(ref val), constant::DW_FORM_ref_udata) => {
                 try!(leb128::write_u64(w, *val as u64));
-            },
+            }
             (&AttributeData::RefAddress(ref val), constant::DW_FORM_ref_addr) => {
                 if unit.version == 2 {
                     try!(write_address(w, unit.endian, unit.address_size, *val));
                 } else {
                     try!(write_offset(w, unit.endian, unit.offset_size, *val));
                 }
-            },
+            }
             (&AttributeData::RefSig(ref val), constant::DW_FORM_ref_sig8) => {
                 try!(unit.endian.write_u64(w, *val));
-            },
+            }
             (&AttributeData::SecOffset(ref val), constant::DW_FORM_sec_offset) => {
                 try!(write_offset(w, unit.endian, unit.offset_size, *val));
-            },
+            }
             (&AttributeData::ExprLoc(ref val), constant::DW_FORM_exprloc) => {
                 try!(leb128::write_u64(w, val.len() as u64));
                 try!(w.write_all(val));
-            },
+            }
             _ => return Err(WriteError::Unsupported(format!("attribute form {}", form.0))),
         }
         Ok(())
@@ -439,6 +439,7 @@ mod test {
     use unit::*;
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn die_cursor() {
         let mut abbrev_hash = AbbrevHash::new();
         abbrev_hash.insert(Abbrev {
@@ -461,7 +462,7 @@ mod test {
         fn entry<'a>(name: &'a str, children: bool) -> Die<'a> {
             Die {
                 offset: 0,
-                code: if children { 1 } else { 2},
+                code: if children { 1 } else { 2 },
                 tag: DW_TAG_namespace,
                 children: children,
                 attributes: vec![
@@ -553,7 +554,10 @@ mod test {
 
     #[test]
     fn attribute() {
-        let abbrev = AbbrevAttribute { at: DW_AT_sibling, form: DW_FORM_ref4 };
+        let abbrev = AbbrevAttribute {
+            at: DW_AT_sibling,
+            form: DW_FORM_ref4,
+        };
         let write_val = Attribute {
             at: DW_AT_sibling,
             data: AttributeData::Ref(0x01234567),
@@ -572,6 +576,7 @@ mod test {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn attribute_data() {
         let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
 
@@ -644,7 +649,8 @@ mod test {
     fn attribute_data_inner<'a, 'b, E: Endian>(
         unit: &mut UnitCommon<'a, E>,
         write_val: &AttributeData<'b>,
-        form: DwForm, expect: &[u8],
+        form: DwForm,
+        expect: &[u8]
     ) {
         for &indirect in &[false, true] {
             unit.data = Default::default();
