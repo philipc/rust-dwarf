@@ -10,19 +10,22 @@ use write::*;
 use unit::UnitCommon;
 
 #[derive(Debug)]
-pub struct DieCursor<'a, 'entry, 'unit: 'a, E: 'a + Endian> {
-    r: &'entry [u8],
+pub struct DieCursor<'a, 'data, E>
+    where 'data: 'a,
+          E: Endian + 'a
+{
+    r: &'data [u8],
     offset: usize,
-    unit: &'a UnitCommon<'unit, E>,
+    unit: &'a UnitCommon<'data, E>,
     abbrev: &'a AbbrevHash,
-    entry: Die<'entry>,
+    entry: Die<'data>,
 }
 
-impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
+impl<'a, 'data, E: Endian> DieCursor<'a, 'data, E> {
     pub fn new(
-        r: &'entry [u8],
+        r: &'data [u8],
         offset: usize,
-        unit: &'a UnitCommon<'unit, E>,
+        unit: &'a UnitCommon<'data, E>,
         abbrev: &'a AbbrevHash
     ) -> Self {
         DieCursor {
@@ -39,7 +42,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
     }
 
     #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-    pub fn next(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<&Die<'data>>, ReadError> {
         if self.r.len() == 0 {
             return Ok(None);
         }
@@ -51,7 +54,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
         Ok(Some(&self.entry))
     }
 
-    pub fn next_sibling(&mut self) -> Result<Option<&Die<'entry>>, ReadError> {
+    pub fn next_sibling(&mut self) -> Result<Option<&Die<'data>>, ReadError> {
         let mut depth = if self.entry.children { 1 } else { 0 };
         while depth > 0 {
             let mut sibling_offset = 0;
@@ -91,15 +94,15 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Die<'a> {
+pub struct Die<'data> {
     pub offset: usize,
     pub code: u64,
     pub tag: constant::DwTag,
     pub children: bool,
-    pub attributes: Vec<Attribute<'a>>,
+    pub attributes: Vec<Attribute<'data>>,
 }
 
-impl<'a> Die<'a> {
+impl<'data> Die<'data> {
     pub fn null(offset: usize) -> Self {
         Die {
             offset: offset,
@@ -122,13 +125,13 @@ impl<'a> Die<'a> {
         self.code == 0
     }
 
-    pub fn attr(&self, at: constant::DwAt) -> Option<&AttributeData<'a>> {
+    pub fn attr(&self, at: constant::DwAt) -> Option<&AttributeData<'data>> {
         self.attributes.iter().find(|attr| attr.at == at).map(|attr| &attr.data)
     }
 
     pub fn read<'unit, E: Endian>(
         &mut self,
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         offset: usize,
         unit: &UnitCommon<'unit, E>,
         abbrev_hash: &AbbrevHash
@@ -188,12 +191,12 @@ impl<'a> Die<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Attribute<'a> {
+pub struct Attribute<'data> {
     pub at: constant::DwAt,
-    pub data: AttributeData<'a>,
+    pub data: AttributeData<'data>,
 }
 
-impl<'a> Attribute<'a> {
+impl<'data> Attribute<'data> {
     pub fn null() -> Self {
         Attribute {
             at: constant::DW_AT_null,
@@ -202,10 +205,10 @@ impl<'a> Attribute<'a> {
     }
 
     pub fn read<'unit, E: Endian>(
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         unit: &UnitCommon<'unit, E>,
         abbrev: &AbbrevAttribute
-    ) -> Result<Attribute<'a>, ReadError> {
+    ) -> Result<Attribute<'data>, ReadError> {
         let data = try!(AttributeData::read(r, unit, abbrev.form));
         Ok(Attribute {
             at: abbrev.at,
@@ -228,10 +231,10 @@ impl<'a> Attribute<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum AttributeData<'a> {
+pub enum AttributeData<'data> {
     Null,
     Address(u64),
-    Block(&'a [u8]),
+    Block(&'data [u8]),
     Data1(u8),
     Data2(u16),
     Data4(u32),
@@ -239,21 +242,21 @@ pub enum AttributeData<'a> {
     UData(u64),
     SData(i64),
     Flag(bool),
-    String(&'a [u8]),
+    String(&'data [u8]),
     StringOffset(u64),
     Ref(u64),
     RefAddress(u64),
     RefSig(u64),
     SecOffset(u64),
-    ExprLoc(&'a [u8]),
+    ExprLoc(&'data [u8]),
 }
 
-impl<'a> AttributeData<'a> {
+impl<'data> AttributeData<'data> {
     pub fn read<'unit, E: Endian>(
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         unit: &UnitCommon<'unit, E>,
         form: constant::DwForm
-    ) -> Result<AttributeData<'a>, ReadError> {
+    ) -> Result<AttributeData<'data>, ReadError> {
         let data = match form {
             constant::DW_FORM_addr => {
                 let val = try!(read_address(r, unit.endian, unit.address_size));
@@ -454,7 +457,7 @@ mod test {
             ],
         });
 
-        fn entry<'a>(name: &'a str, children: bool) -> Die<'a> {
+        fn entry<'data>(name: &'data str, children: bool) -> Die<'data> {
             Die {
                 offset: 0,
                 code: if children { 1 } else { 2 },
@@ -646,8 +649,8 @@ mod test {
         }
     }
 
-    fn attribute_data_inner<'a, 'b, E: Endian>(
-        unit: &UnitCommon<'a, E>,
+    fn attribute_data_inner<'data, 'b, E: Endian>(
+        unit: &UnitCommon<'data, E>,
         write_val: &AttributeData<'b>,
         form: DwForm,
         expect: &[u8]

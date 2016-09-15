@@ -4,7 +4,7 @@ use leb128;
 use read::*;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct LineNumberProgram<'a, E: Endian> {
+pub struct LineNumberProgram<'data, E: Endian> {
     pub offset: usize,
     pub endian: E,
     pub version: u16,
@@ -16,23 +16,23 @@ pub struct LineNumberProgram<'a, E: Endian> {
     pub line_base: i8,
     pub line_range: u8,
     pub opcode_base: u8,
-    pub standard_opcode_lengths: &'a [u8],
-    pub include_directories: Vec<&'a [u8]>,
-    pub files: Vec<FileEntry<'a>>,
-    pub data: &'a [u8],
+    pub standard_opcode_lengths: &'data [u8],
+    pub include_directories: Vec<&'data [u8]>,
+    pub files: Vec<FileEntry<'data>>,
+    pub data: &'data [u8],
 }
 
-impl<'a, E: Endian> LineNumberProgram<'a, E> {
+impl<'data, E: Endian> LineNumberProgram<'data, E> {
     pub fn lines(&self) -> LineIterator<E> {
         LineIterator::new(self)
     }
 
     pub fn read(
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         offset: usize,
         endian: E,
         address_size: u8
-    ) -> Result<LineNumberProgram<'a, E>, ReadError> {
+    ) -> Result<LineNumberProgram<'data, E>, ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];
 
@@ -126,17 +126,17 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
     }
 }
 
-pub struct LineIterator<'a, E: 'a + Endian> {
-    program: &'a LineNumberProgram<'a, E>,
-    data: &'a [u8],
-    files: Vec<FileEntry<'a>>,
-    line: Line<'a>,
+pub struct LineIterator<'data, E: 'data + Endian> {
+    program: &'data LineNumberProgram<'data, E>,
+    data: &'data [u8],
+    files: Vec<FileEntry<'data>>,
+    line: Line<'data>,
     file: usize,
     copy: bool,
 }
 
-impl<'a, E: Endian> LineIterator<'a, E> {
-    pub fn new(program: &'a LineNumberProgram<'a, E>) -> Self {
+impl<'data, E: Endian> LineIterator<'data, E> {
+    pub fn new(program: &'data LineNumberProgram<'data, E>) -> Self {
         LineIterator {
             program: program,
             data: program.data.as_ref(),
@@ -175,7 +175,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         }
     }
 
-    fn next_opcode(&mut self, r: &mut &'a [u8]) -> Result<(), ReadError> {
+    fn next_opcode(&mut self, r: &mut &'data [u8]) -> Result<(), ReadError> {
         let opcode = try!(read_u8(r));
         match constant::DwLns(opcode) {
             constant::DW_LNS_extended => try!(self.next_extended(r)),
@@ -216,7 +216,7 @@ impl<'a, E: Endian> LineIterator<'a, E> {
         Ok(())
     }
 
-    fn next_extended(&mut self, r: &mut &'a [u8]) -> Result<(), ReadError> {
+    fn next_extended(&mut self, r: &mut &'data [u8]) -> Result<(), ReadError> {
         let len = try!(leb128::read_u64(r)) as usize;
         if len > r.len() {
             return Err(ReadError::Invalid);
@@ -294,10 +294,10 @@ impl<'a, E: Endian> LineIterator<'a, E> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Line<'a> {
+pub struct Line<'data> {
     pub address: u64,
     pub operation: u64,
-    pub file: FileEntry<'a>,
+    pub file: FileEntry<'data>,
     pub line: u64,
     pub column: u64,
     pub statement: bool,
@@ -309,7 +309,7 @@ pub struct Line<'a> {
     pub discriminator: u64,
 }
 
-impl<'a> Line<'a> {
+impl<'data> Line<'data> {
     fn new(statement: bool) -> Self {
         Line {
             address: 0,
@@ -329,14 +329,14 @@ impl<'a> Line<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FileEntry<'a> {
-    pub path: &'a [u8],
+pub struct FileEntry<'data> {
+    pub path: &'data [u8],
     pub directory: usize,
     pub timestamp: u64,
     pub length: u64,
 }
 
-impl<'a> Default for FileEntry<'a> {
+impl<'data> Default for FileEntry<'data> {
     fn default() -> Self {
         FileEntry {
             path: &[],
@@ -347,8 +347,8 @@ impl<'a> Default for FileEntry<'a> {
     }
 }
 
-impl<'a> FileEntry<'a> {
-    pub fn read(r: &mut &'a [u8]) -> Result<FileEntry<'a>, ReadError> {
+impl<'data> FileEntry<'data> {
+    pub fn read(r: &mut &'data [u8]) -> Result<FileEntry<'data>, ReadError> {
         let path = try!(read_string(r));
         // Note: not validating this here
         let directory = try!(leb128::read_u64(r)) as usize;

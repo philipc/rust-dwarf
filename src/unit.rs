@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::ops::Deref;
 
 use abbrev::AbbrevHash;
 use constant;
@@ -10,14 +9,14 @@ use read::*;
 use write::*;
 
 #[derive(Debug)]
-pub struct CompilationUnitIterator<'a, E: Endian> {
+pub struct CompilationUnitIterator<'data, E: Endian> {
     endian: E,
-    data: &'a [u8],
+    data: &'data [u8],
     offset: usize,
 }
 
-impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
-    pub fn new(endian: E, data: &'a [u8]) -> Self {
+impl<'data, E: Endian> CompilationUnitIterator<'data, E> {
+    pub fn new(endian: E, data: &'data [u8]) -> Self {
         CompilationUnitIterator {
             endian: endian,
             data: data,
@@ -30,7 +29,7 @@ impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
     }
 
     #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-    pub fn next(&mut self) -> Result<Option<CompilationUnit<'a, E>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<CompilationUnit<'data, E>>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
         }
@@ -44,17 +43,17 @@ impl<'a, E: Endian> CompilationUnitIterator<'a, E> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct CompilationUnit<'a, E: Endian> {
-    pub common: UnitCommon<'a, E>,
+pub struct CompilationUnit<'data, E: Endian> {
+    pub common: UnitCommon<'data, E>,
 }
 
-impl<'a, E: Endian + Default> Default for CompilationUnit<'a, E> {
+impl<'data, E: Endian + Default> Default for CompilationUnit<'data, E> {
     fn default() -> Self {
         CompilationUnit { common: Default::default() }
     }
 }
 
-impl<'a, E: Endian> CompilationUnit<'a, E> {
+impl<'data, E: Endian> CompilationUnit<'data, E> {
     fn base_header_len(offset_size: u8) -> usize {
         // version + abbrev_offset + address_size
         2 + offset_size as usize + 1
@@ -66,11 +65,11 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         (offset_size as usize * 2 - 4) + Self::base_header_len(offset_size)
     }
 
-    pub fn data(&'a self) -> &'a [u8] {
+    pub fn data(&'data self) -> &'data [u8] {
         self.common.data()
     }
 
-    pub fn data_offset(&'a self) -> usize {
+    pub fn data_offset(&'data self) -> usize {
         self.common.offset + Self::total_header_len(self.common.offset_size)
     }
 
@@ -107,26 +106,23 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         Ok(None)
     }
 
-    pub fn entries<'cursor>(
-        &'a self,
-        abbrev: &'cursor AbbrevHash
-    ) -> DieCursor<'cursor, 'a, 'a, E> {
+    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'data, E> {
         self.common.entries(self.data_offset(), abbrev)
     }
 
-    pub fn entry<'cursor>(
+    pub fn entry<'a>(
         &'a self,
         offset: usize,
-        abbrev: &'cursor AbbrevHash
-    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        abbrev: &'a AbbrevHash
+    ) -> Option<DieCursor<'a, 'data, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
 
     pub fn read(
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         offset: usize,
         endian: E
-    ) -> Result<CompilationUnit<'a, E>, ReadError> {
+    ) -> Result<CompilationUnit<'data, E>, ReadError> {
         let (mut common, data) = try!(UnitCommon::read(r, offset, endian));
         common.data = data;
         Ok(CompilationUnit { common: common })
@@ -141,14 +137,14 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
 }
 
 #[derive(Debug)]
-pub struct TypeUnitIterator<'a, E: Endian> {
+pub struct TypeUnitIterator<'data, E: Endian> {
     endian: E,
-    data: &'a [u8],
+    data: &'data [u8],
     offset: usize,
 }
 
-impl<'a, E: Endian> TypeUnitIterator<'a, E> {
-    pub fn new(endian: E, data: &'a [u8]) -> Self {
+impl<'data, E: Endian> TypeUnitIterator<'data, E> {
+    pub fn new(endian: E, data: &'data [u8]) -> Self {
         TypeUnitIterator {
             endian: endian,
             data: data,
@@ -161,7 +157,7 @@ impl<'a, E: Endian> TypeUnitIterator<'a, E> {
     }
 
     #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-    pub fn next(&mut self) -> Result<Option<TypeUnit<'a, E>>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<TypeUnit<'data, E>>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
         }
@@ -176,13 +172,13 @@ impl<'a, E: Endian> TypeUnitIterator<'a, E> {
 
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TypeUnit<'a, E: Endian> {
-    pub common: UnitCommon<'a, E>,
+pub struct TypeUnit<'data, E: Endian> {
+    pub common: UnitCommon<'data, E>,
     pub type_signature: u64,
     pub type_offset: u64,
 }
 
-impl<'a, E: Endian> TypeUnit<'a, E> {
+impl<'data, E: Endian> TypeUnit<'data, E> {
     fn base_header_len(offset_size: u8) -> usize {
         // version + abbrev_offset + address_size + type_signature + type_offset
         2 + offset_size as usize + 1 + 8 + offset_size as usize
@@ -193,11 +189,11 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         (offset_size as usize * 2 - 4) + Self::base_header_len(offset_size)
     }
 
-    pub fn data(&'a self) -> &'a [u8] {
+    pub fn data(&'data self) -> &'data [u8] {
         self.common.data()
     }
 
-    pub fn data_offset(&'a self) -> usize {
+    pub fn data_offset(&'data self) -> usize {
         self.common.offset + Self::total_header_len(self.common.offset_size)
     }
 
@@ -205,29 +201,27 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         self.common.abbrev(debug_abbrev)
     }
 
-    pub fn entries<'cursor>(
-        &'a self,
-        abbrev: &'cursor AbbrevHash
-    ) -> DieCursor<'cursor, 'a, 'a, E> {
+    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'data, E> {
         self.common.entries(self.data_offset(), abbrev)
     }
 
-    pub fn entry<'cursor>(
+    pub fn entry<'a>(
         &'a self,
         offset: usize,
-        abbrev: &'cursor AbbrevHash
-    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        abbrev: &'a AbbrevHash
+    ) -> Option<DieCursor<'a, 'data, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
 
-    pub fn type_entry<'cursor>(
-        &'a self,
-        abbrev: &'cursor AbbrevHash
-    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+    pub fn type_entry<'a>(&'a self, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a, 'data, E>> {
         self.common.entry(self.data_offset(), self.type_offset as usize, abbrev)
     }
 
-    pub fn read(r: &mut &'a [u8], offset: usize, endian: E) -> Result<TypeUnit<'a, E>, ReadError> {
+    pub fn read(
+        r: &mut &'data [u8],
+        offset: usize,
+        endian: E
+    ) -> Result<TypeUnit<'data, E>, ReadError> {
         let (mut common, mut data) = try!(UnitCommon::read(r, offset, endian));
 
         // Read the remaining fields out of data
@@ -256,17 +250,17 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct UnitCommon<'a, E: Endian> {
+pub struct UnitCommon<'data, E: Endian> {
     pub offset: usize,
     pub endian: E,
     pub version: u16,
     pub address_size: u8,
     pub offset_size: u8,
     pub abbrev_offset: u64,
-    pub data: &'a [u8],
+    pub data: &'data [u8],
 }
 
-impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
+impl<'data, E: Endian + Default> Default for UnitCommon<'data, E> {
     fn default() -> Self {
         UnitCommon {
             offset: 0,
@@ -281,8 +275,8 @@ impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
 }
 
 #[cfg_attr(feature = "clippy", allow(len_without_is_empty))]
-impl<'a, E: Endian> UnitCommon<'a, E> {
-    pub fn data(&'a self) -> &'a [u8] {
+impl<'data, E: Endian> UnitCommon<'data, E> {
+    pub fn data(&'data self) -> &'data [u8] {
         &*self.data
     }
 
@@ -299,22 +293,20 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
         AbbrevHash::read(&mut &debug_abbrev[offset..])
     }
 
-    pub fn entries<'cursor>(
+    pub fn entries<'a>(
         &'a self,
         data_offset: usize,
-        abbrev: &'cursor AbbrevHash
-    ) -> DieCursor<'cursor, 'a, 'a, E> {
-        // Unfortunately, entry lifetime is restricted to that of self
-        // because self.data might be owned
-        DieCursor::new(self.data.deref(), data_offset, self, abbrev)
+        abbrev: &'a AbbrevHash
+    ) -> DieCursor<'a, 'data, E> {
+        DieCursor::new(self.data, data_offset, self, abbrev)
     }
 
-    pub fn entry<'cursor>(
+    pub fn entry<'a>(
         &'a self,
         data_offset: usize,
         offset: usize,
-        abbrev: &'cursor AbbrevHash
-    ) -> Option<DieCursor<'cursor, 'a, 'a, E>> {
+        abbrev: &'a AbbrevHash
+    ) -> Option<DieCursor<'a, 'data, E>> {
         if offset < data_offset {
             return None;
         }
@@ -326,10 +318,10 @@ impl<'a, E: Endian> UnitCommon<'a, E> {
     }
 
     pub fn read(
-        r: &mut &'a [u8],
+        r: &mut &'data [u8],
         offset: usize,
         endian: E
-    ) -> Result<(UnitCommon<'a, E>, &'a [u8]), ReadError> {
+    ) -> Result<(UnitCommon<'data, E>, &'data [u8]), ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];
 

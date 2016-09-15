@@ -53,7 +53,7 @@ impl<'a> Formatter for DefaultFormatter<'a> {
     }
 }
 
-impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
+impl<'a, 'data, E: Endian> DieCursor<'a, 'data, E> {
     pub fn display<F: Formatter>(&mut self, f: &mut F) -> Result<(), ReadError> {
         while let Some(die) = try!(self.next()) {
             if die.is_null() {
@@ -112,7 +112,7 @@ impl<'a, 'entry, 'unit, E: Endian> DieCursor<'a, 'entry, 'unit, E> {
     }
 }
 
-impl<'a> Die<'a> {
+impl<'data> Die<'data> {
     pub fn display<F: Formatter>(&self, f: &mut F) -> Result<(), std::io::Error> {
         try!(write!(f, "{}\n", self.tag));
         try!(write!(f, "offset: {:x}\n", self.offset));
@@ -123,14 +123,14 @@ impl<'a> Die<'a> {
     }
 }
 
-impl<'a> fmt::Display for Attribute<'a> {
+impl<'data> fmt::Display for Attribute<'data> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: interpret data based on attribute type
         write!(f, "{}: {}", self.at, self.data)
     }
 }
 
-impl<'a> fmt::Display for AttributeData<'a> {
+impl<'data> fmt::Display for AttributeData<'data> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             AttributeData::Null => write!(f, "(null)"),
@@ -328,7 +328,7 @@ impl fmt::Display for constant::DwAt {
     }
 }
 
-impl<'a> fmt::Display for Line<'a> {
+impl<'data> fmt::Display for Line<'data> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{:08x} {}, {}", self.address, self.line, self.column));
         if self.statement {
