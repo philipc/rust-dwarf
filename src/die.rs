@@ -147,16 +147,9 @@ impl<'a> Die<'a> {
 
         self.tag = abbrev.tag;
         self.children = abbrev.children;
-        let len = abbrev.attributes.len();
-        self.attributes.reserve(len);
-        unsafe {
-            self.attributes.set_len(len);
-            for i in 0..len {
-                if let Err(e) = self.attributes[i].read(r, unit, &abbrev.attributes[i]) {
-                    self.attributes.clear();
-                    return Err(e);
-                }
-            }
+        self.attributes.reserve(abbrev.attributes.len());
+        for abbrev_attribute in &abbrev.attributes {
+            self.attributes.push(try!(Attribute::read(r, unit, abbrev_attribute)));
         }
 
         Ok(())
@@ -209,14 +202,15 @@ impl<'a> Attribute<'a> {
     }
 
     pub fn read<'unit, E: Endian>(
-        &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'unit, E>,
         abbrev: &AbbrevAttribute
-    ) -> Result<(), ReadError> {
-        self.at = abbrev.at;
-        try!(self.data.read(r, unit, abbrev.form));
-        Ok(())
+    ) -> Result<Attribute<'a>, ReadError> {
+        let data = try!(AttributeData::read(r, unit, abbrev.form));
+        Ok(Attribute {
+            at: abbrev.at,
+            data: data,
+        })
     }
 
     pub fn write<'unit, E: Endian>(
@@ -255,12 +249,11 @@ pub enum AttributeData<'a> {
 
 impl<'a> AttributeData<'a> {
     pub fn read<'unit, E: Endian>(
-        &mut self,
         r: &mut &'a [u8],
         unit: &UnitCommon<'unit, E>,
         form: constant::DwForm
-    ) -> Result<(), ReadError> {
-        *self = match form {
+    ) -> Result<AttributeData<'a>, ReadError> {
+        let data = match form {
             constant::DW_FORM_addr => {
                 let val = try!(read_address(r, unit.endian, unit.address_size));
                 AttributeData::Address(val)
@@ -312,7 +305,7 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_ref_udata => AttributeData::Ref(try!(leb128::read_u64(r))),
             constant::DW_FORM_indirect => {
                 let val = try!(leb128::read_u16(r));
-                return self.read(r, unit, constant::DwForm(val));
+                try!(AttributeData::read(r, unit, constant::DwForm(val)))
             }
             constant::DW_FORM_sec_offset => {
                 // TODO: validate based on class
@@ -328,7 +321,7 @@ impl<'a> AttributeData<'a> {
             constant::DW_FORM_ref_sig8 => AttributeData::RefSig(try!(unit.endian.read_u64(r))),
             _ => return Err(ReadError::Unsupported),
         };
-        Ok(())
+        Ok(data)
     }
 
     #[cfg_attr(feature = "clippy", allow(match_same_arms))]
@@ -568,8 +561,7 @@ mod test {
         write_val.write(&mut unit, &abbrev).unwrap();
 
         let mut r = unit.data();
-        let mut read_val = Attribute::null();
-        read_val.read(&mut r, &unit, &abbrev).unwrap();
+        let read_val = Attribute::read(&mut r, &unit, &abbrev).unwrap();
 
         assert_eq!(unit.data(), [0x67, 0x45, 0x23, 0x01]);
         assert_eq!(r.len(), 0);
@@ -660,8 +652,7 @@ mod test {
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
             let mut r = buf;
-            let mut read_val = AttributeData::Null;
-            read_val.read(&mut r, unit, read_form).unwrap();
+            let read_val = AttributeData::read(&mut r, unit, read_form).unwrap();
 
             if indirect {
                 assert_eq!(buf[0] as u16, form.0);
