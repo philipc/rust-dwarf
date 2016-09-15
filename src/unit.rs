@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::Write;
 use std::ops::Deref;
 
@@ -129,7 +128,7 @@ impl<'a, E: Endian> CompilationUnit<'a, E> {
         endian: E
     ) -> Result<CompilationUnit<'a, E>, ReadError> {
         let (mut common, data) = try!(UnitCommon::read(r, offset, endian));
-        common.data = From::from(data);
+        common.data = data;
         Ok(CompilationUnit { common: common })
     }
 
@@ -234,7 +233,7 @@ impl<'a, E: Endian> TypeUnit<'a, E> {
         // Read the remaining fields out of data
         let type_signature = try!(endian.read_u64(&mut data));
         let type_offset = try!(read_offset(&mut data, endian, common.offset_size));
-        common.data = From::from(data);
+        common.data = data;
 
         Ok(TypeUnit {
             common: common,
@@ -264,7 +263,7 @@ pub struct UnitCommon<'a, E: Endian> {
     pub address_size: u8,
     pub offset_size: u8,
     pub abbrev_offset: u64,
-    pub data: Cow<'a, [u8]>,
+    pub data: &'a [u8],
 }
 
 impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
@@ -276,7 +275,7 @@ impl<'a, E: Endian + Default> Default for UnitCommon<'a, E> {
             address_size: 4,
             offset_size: 4,
             abbrev_offset: 0,
-            data: Cow::Owned(Vec::new()),
+            data: &[],
         }
     }
 }
@@ -397,7 +396,7 @@ mod test {
                 address_size: 4,
                 offset_size: offset_size,
                 abbrev_offset: 0x12,
-                data: From::from(&data[..]),
+                data: &data[..],
             },
         };
 
@@ -433,7 +432,7 @@ mod test {
                 address_size: 4,
                 offset_size: offset_size,
                 abbrev_offset: 0x12,
-                data: From::from(&data[..]),
+                data: &data,
             },
         };
 
@@ -469,7 +468,7 @@ mod test {
                 address_size: 4,
                 offset_size: offset_size,
                 abbrev_offset: 0x12,
-                data: From::from(&data[..]),
+                data: &data,
             },
             type_signature: 0x0123456789abcdef,
             type_offset: 0x02,
@@ -509,7 +508,7 @@ mod test {
                 address_size: 4,
                 offset_size: offset_size,
                 abbrev_offset: 0x12,
-                data: From::from(&data[..]),
+                data: &data,
             },
             type_signature: 0x0123456789abcdef,
             type_offset: 0x02,

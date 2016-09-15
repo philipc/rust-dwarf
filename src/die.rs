@@ -155,18 +155,18 @@ impl<'a> Die<'a> {
         Ok(())
     }
 
-    pub fn write_null<E: Endian>(unit: &mut UnitCommon<E>) -> std::io::Result<()> {
-        let w = unit.data.to_mut();
+    pub fn write_null<W: Write>(w: &mut W) -> std::io::Result<()> {
         leb128::write_u64(w, 0)
     }
 
-    pub fn write<'unit, E: Endian>(
+    pub fn write<'unit, E: Endian, W: Write>(
         &self,
-        unit: &mut UnitCommon<'unit, E>,
+        w: &mut W,
+        unit: &UnitCommon<'unit, E>,
         abbrev_hash: &AbbrevHash
     ) -> Result<(), WriteError> {
         if self.code == 0 {
-            try!(Die::write_null(unit));
+            try!(Die::write_null(w));
             return Ok(());
         }
         let abbrev = match abbrev_hash.get(self.code) {
@@ -179,9 +179,9 @@ impl<'a> Die<'a> {
         if self.attributes.len() != abbrev.attributes.len() {
             return Err(WriteError::Invalid("die/abbrev attribute length mismatch".to_string()));
         }
-        try!(leb128::write_u64(unit.data.to_mut(), abbrev.code));
+        try!(leb128::write_u64(w, abbrev.code));
         for (attribute, abbrev_attribute) in self.attributes.iter().zip(&abbrev.attributes) {
-            try!(attribute.write(unit, abbrev_attribute));
+            try!(attribute.write(w, unit, abbrev_attribute));
         }
         Ok(())
     }
@@ -213,15 +213,16 @@ impl<'a> Attribute<'a> {
         })
     }
 
-    pub fn write<'unit, E: Endian>(
+    pub fn write<'unit, E: Endian, W: Write>(
         &self,
-        unit: &mut UnitCommon<'unit, E>,
+        w: &mut W,
+        unit: &UnitCommon<'unit, E>,
         abbrev: &AbbrevAttribute
     ) -> Result<(), WriteError> {
         if self.at != abbrev.at {
             return Err(WriteError::Invalid("attribute type mismatch".to_string()));
         }
-        try!(self.data.write(unit, abbrev.form, false));
+        try!(self.data.write(w, unit, abbrev.form, false));
         Ok(())
     }
 }
@@ -325,13 +326,13 @@ impl<'a> AttributeData<'a> {
     }
 
     #[cfg_attr(feature = "clippy", allow(match_same_arms))]
-    pub fn write<'unit, E: Endian>(
+    pub fn write<'unit, E: Endian, W: Write>(
         &self,
-        unit: &mut UnitCommon<'unit, E>,
+        w: &mut W,
+        unit: &UnitCommon<'unit, E>,
         form: constant::DwForm,
         indirect: bool
     ) -> Result<(), WriteError> {
-        let w = unit.data.to_mut();
         if indirect {
             try!(leb128::write_u16(w, form.0));
         }
@@ -483,17 +484,19 @@ mod test {
                 Die::null(0),
             entry("15", false),
         ];
+        let mut data = Vec::new();
         let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
         for mut entry in &mut write_val {
-            entry.offset = unit.len();
-            entry.write(&mut unit, &abbrev_hash).unwrap();
+            entry.offset = data.len();
+            entry.write(&mut data, &unit, &abbrev_hash).unwrap();
         }
+        unit.data = &data[..];
 
         let mut entries = unit.entries(0, &abbrev_hash);
         for i in 0..write_val.len() {
             match entries.next() {
                 Ok(Some(read_val)) => assert_eq!(*read_val, write_val[i]),
-                _ => panic!(),
+                otherwise => panic!("{:?}", otherwise),
             }
         }
         assert!(entries.next().unwrap().is_none());
@@ -534,8 +537,10 @@ mod test {
             ],
         };
 
+        let mut data = Vec::new();
         let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
-        write_val.write(&mut unit, &abbrev_hash).unwrap();
+        write_val.write(&mut data, &unit, &abbrev_hash).unwrap();
+        unit.data = &data[..];
 
         let mut r = unit.data();
         let mut read_val = Die::null(0);
@@ -557,8 +562,10 @@ mod test {
             data: AttributeData::Ref(0x01234567),
         };
 
+        let mut data = Vec::new();
         let mut unit = UnitCommon { endian: LittleEndian, ..Default::default() };
-        write_val.write(&mut unit, &abbrev).unwrap();
+        write_val.write(&mut data, &unit, &abbrev).unwrap();
+        unit.data = &data[..];
 
         let mut r = unit.data();
         let read_val = Attribute::read(&mut r, &unit, &abbrev).unwrap();
@@ -640,15 +647,15 @@ mod test {
     }
 
     fn attribute_data_inner<'a, 'b, E: Endian>(
-        unit: &mut UnitCommon<'a, E>,
+        unit: &UnitCommon<'a, E>,
         write_val: &AttributeData<'b>,
         form: DwForm,
         expect: &[u8]
     ) {
         for &indirect in &[false, true] {
-            unit.data = Default::default();
-            write_val.write(unit, form, indirect).unwrap();
-            let buf = unit.data();
+            let mut data = Vec::new();
+            write_val.write(&mut data, unit, form, indirect).unwrap();
+            let buf = &data[..];
 
             let read_form = if indirect { DW_FORM_indirect } else { form };
             let mut r = buf;

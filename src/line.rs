@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use constant;
 use endian::Endian;
 use leb128;
@@ -18,10 +16,10 @@ pub struct LineNumberProgram<'a, E: Endian> {
     pub line_base: i8,
     pub line_range: u8,
     pub opcode_base: u8,
-    pub standard_opcode_lengths: Cow<'a, [u8]>,
+    pub standard_opcode_lengths: &'a [u8],
     pub include_directories: Vec<&'a [u8]>,
     pub files: Vec<FileEntry<'a>>,
-    pub data: Cow<'a, [u8]>,
+    pub data: &'a [u8],
 }
 
 impl<'a, E: Endian> LineNumberProgram<'a, E> {
@@ -120,10 +118,10 @@ impl<'a, E: Endian> LineNumberProgram<'a, E> {
             line_base: line_base,
             line_range: line_range,
             opcode_base: opcode_base,
-            standard_opcode_lengths: From::from(standard_opcode_lengths),
+            standard_opcode_lengths: standard_opcode_lengths,
             include_directories: include_directories,
             files: files,
-            data: From::from(data),
+            data: data,
         })
     }
 }

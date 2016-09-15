@@ -28,16 +28,18 @@ fn read_and_write() {
     while let Some(read_unit) = units.next().unwrap() {
         let abbrev = sections.abbrev(&read_unit.common).unwrap();
 
-        let mut entries = read_unit.entries(&abbrev);
+        let mut data = Vec::new();
         let mut write_unit = dwarf::unit::CompilationUnit {
             common: dwarf::unit::UnitCommon {
-                data: Default::default(),
                 ..read_unit.common
             },
         };
+        // TODO: write and compare the header
+        let mut entries = read_unit.entries(&abbrev);
         while let Some(entry) = entries.next().unwrap() {
-            entry.write(&mut write_unit.common, &abbrev).unwrap();
+            entry.write(&mut data, &write_unit.common, &abbrev).unwrap();
         }
+        write_unit.common.data = &data[..];
 
         let mut read_entries = read_unit.entries(&abbrev);
         let mut write_entries = write_unit.entries(&abbrev);
