@@ -2,7 +2,7 @@ use std::io::Write;
 
 use abbrev::AbbrevHash;
 use constant;
-use die::{DieCursor, AttributeData};
+use die::{DieIterator, AttributeData};
 use endian::Endian;
 use line::LineNumberProgram;
 use read::*;
@@ -106,7 +106,7 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         Ok(None)
     }
 
-    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'data, E> {
+    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieIterator<'a, 'data, E> {
         self.common.entries(self.data_offset(), abbrev)
     }
 
@@ -114,7 +114,7 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         &'a self,
         offset: usize,
         abbrev: &'a AbbrevHash
-    ) -> Option<DieCursor<'a, 'data, E>> {
+    ) -> Option<DieIterator<'a, 'data, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
 
@@ -201,7 +201,7 @@ impl<'data, E: Endian> TypeUnit<'data, E> {
         self.common.abbrev(debug_abbrev)
     }
 
-    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieCursor<'a, 'data, E> {
+    pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieIterator<'a, 'data, E> {
         self.common.entries(self.data_offset(), abbrev)
     }
 
@@ -209,11 +209,11 @@ impl<'data, E: Endian> TypeUnit<'data, E> {
         &'a self,
         offset: usize,
         abbrev: &'a AbbrevHash
-    ) -> Option<DieCursor<'a, 'data, E>> {
+    ) -> Option<DieIterator<'a, 'data, E>> {
         self.common.entry(self.data_offset(), offset, abbrev)
     }
 
-    pub fn type_entry<'a>(&'a self, abbrev: &'a AbbrevHash) -> Option<DieCursor<'a, 'data, E>> {
+    pub fn type_entry<'a>(&'a self, abbrev: &'a AbbrevHash) -> Option<DieIterator<'a, 'data, E>> {
         self.common.entry(self.data_offset(), self.type_offset as usize, abbrev)
     }
 
@@ -297,8 +297,8 @@ impl<'data, E: Endian> UnitCommon<'data, E> {
         &'a self,
         data_offset: usize,
         abbrev: &'a AbbrevHash
-    ) -> DieCursor<'a, 'data, E> {
-        DieCursor::new(self.data, data_offset, self, abbrev)
+    ) -> DieIterator<'a, 'data, E> {
+        DieIterator::new(self.data, data_offset, self, abbrev)
     }
 
     pub fn entry<'a>(
@@ -306,7 +306,7 @@ impl<'data, E: Endian> UnitCommon<'data, E> {
         data_offset: usize,
         offset: usize,
         abbrev: &'a AbbrevHash
-    ) -> Option<DieCursor<'a, 'data, E>> {
+    ) -> Option<DieIterator<'a, 'data, E>> {
         if offset < data_offset {
             return None;
         }
@@ -314,7 +314,7 @@ impl<'data, E: Endian> UnitCommon<'data, E> {
         if relative_offset >= self.data.len() {
             return None;
         }
-        Some(DieCursor::new(&self.data[relative_offset..], offset, self, abbrev))
+        Some(DieIterator::new(&self.data[relative_offset..], offset, self, abbrev))
     }
 
     pub fn read(

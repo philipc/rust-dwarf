@@ -10,7 +10,7 @@ use write::*;
 use unit::UnitCommon;
 
 #[derive(Debug)]
-pub struct DieCursor<'a, 'data, E>
+pub struct DieIterator<'a, 'data, E>
     where 'data: 'a,
           E: Endian + 'a
 {
@@ -21,14 +21,14 @@ pub struct DieCursor<'a, 'data, E>
     entry: Die<'data>,
 }
 
-impl<'a, 'data, E: Endian> DieCursor<'a, 'data, E> {
+impl<'a, 'data, E: Endian> DieIterator<'a, 'data, E> {
     pub fn new(
         r: &'data [u8],
         offset: usize,
         unit: &'a UnitCommon<'data, E>,
         abbrev: &'a AbbrevHash
     ) -> Self {
-        DieCursor {
+        DieIterator {
             r: r,
             offset: offset,
             unit: unit,

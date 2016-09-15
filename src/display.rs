@@ -53,7 +53,7 @@ impl<'a> Formatter for DefaultFormatter<'a> {
     }
 }
 
-impl<'a, 'data, E: Endian> DieCursor<'a, 'data, E> {
+impl<'a, 'data, E: Endian> DieIterator<'a, 'data, E> {
     pub fn display<F: Formatter>(&mut self, f: &mut F) -> Result<(), ReadError> {
         while let Some(die) = try!(self.next()) {
             if die.is_null() {
