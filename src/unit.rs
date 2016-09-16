@@ -2,9 +2,9 @@ use std::io::Write;
 
 use abbrev::AbbrevHash;
 use constant;
-use die::{DieIterator, AttributeData};
+use die::DieIterator;
 use endian::Endian;
-use line::LineNumberProgram;
+use line::{LineIterator, LineNumberProgram};
 use read::*;
 use write::*;
 
@@ -77,33 +77,51 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         self.common.abbrev(debug_abbrev)
     }
 
-    pub fn line_program<'line>(
+    pub fn line_program(
         &self,
-        debug_line: &'line [u8],
+        debug_line: &'data [u8],
+        debug_str: &'data [u8],
         abbrev: &AbbrevHash
-    ) -> Result<Option<LineNumberProgram<'line, E>>, ReadError> {
+    ) -> Result<Option<LineNumberProgram<'data, E>>, ReadError> {
         let mut entries = self.entries(abbrev);
-        if let Some(entry) = try!(entries.next()) {
-            if let Some(attr) = entry.attr(constant::DW_AT_stmt_list) {
-                let offset = match *attr {
-                    AttributeData::Data4(val) => val as usize,
-                    AttributeData::SecOffset(val) => val as usize,
-                    _ => return Err(ReadError::Invalid),
-                };
+        let entry = if let Some(entry) = try!(entries.next()) {
+            entry
+        } else {
+            return Err(ReadError::Invalid);
+        };
 
-                if offset >= debug_line.len() {
-                    return Err(ReadError::Invalid);
-                }
-                let mut r = &debug_line[offset..];
+        let offset = match entry.attr(constant::DW_AT_stmt_list) {
+            Some(offset) => offset,
+            None => return Ok(None),
+        };
+        let offset = try!(offset.as_offset().ok_or(ReadError::Invalid)) as usize;
+        let comp_dir = try!(entry.attr(constant::DW_AT_comp_dir).ok_or(ReadError::Invalid));
+        let comp_dir = try!(comp_dir.as_string(debug_str).ok_or(ReadError::Invalid));
+        let comp_name = try!(entry.attr(constant::DW_AT_name).ok_or(ReadError::Invalid));
+        let comp_name = try!(comp_name.as_string(debug_str).ok_or(ReadError::Invalid));
 
-                return LineNumberProgram::read(&mut r,
-                                               offset,
-                                               self.common.endian,
-                                               self.common.address_size)
-                    .map(Some);
-            }
+        if offset >= debug_line.len() {
+            return Err(ReadError::Invalid);
         }
-        Ok(None)
+        let mut r = &debug_line[offset..];
+
+        LineNumberProgram::read(&mut r,
+                                offset,
+                                self.common.endian,
+                                self.common.address_size,
+                                comp_dir,
+                                comp_name)
+            .map(Some)
+    }
+
+    pub fn lines(
+        &self,
+        debug_line: &'data [u8],
+        debug_str: &'data [u8],
+        abbrev: &AbbrevHash
+    ) -> Result<Option<LineIterator<'data, E>>, ReadError> {
+        let program = try!(self.line_program(debug_line, debug_str, abbrev));
+        Ok(program.map(LineNumberProgram::into_lines))
     }
 
     pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieIterator<'a, 'data, E> {

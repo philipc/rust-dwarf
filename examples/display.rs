@@ -19,10 +19,9 @@ fn display(path: &Path) -> Result<(), dwarf::ReadError> {
         let abbrev = try!(sections.abbrev(&unit.common));
         try!(unit.entries(&abbrev).display_depth(&mut f, 3));
 
-        if let Some(line_program) = try!(sections.line_program(&unit, &abbrev)) {
-            let mut lines = line_program.lines();
-            while let Some(line) = try!(lines.next()) {
-                println!("{}", line);
+        if let Some(mut lines) = try!(sections.lines(&unit, &abbrev)) {
+            while let Some((lines, line)) = try!(lines.next()) {
+                try!(line.display(&mut f, lines.files()));
             }
         }
     }

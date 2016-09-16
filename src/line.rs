@@ -3,7 +3,7 @@ use endian::Endian;
 use leb128;
 use read::*;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LineNumberProgram<'data, E: Endian> {
     pub offset: usize,
     pub endian: E,
@@ -23,7 +23,11 @@ pub struct LineNumberProgram<'data, E: Endian> {
 }
 
 impl<'data, E: Endian> LineNumberProgram<'data, E> {
-    pub fn lines(&self) -> LineIterator<E> {
+    pub fn lines(&self) -> LineIterator<'data, E> {
+        LineIterator::new(self.clone())
+    }
+
+    pub fn into_lines(self) -> LineIterator<'data, E> {
         LineIterator::new(self)
     }
 
@@ -31,7 +35,9 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
         r: &mut &'data [u8],
         offset: usize,
         endian: E,
-        address_size: u8
+        address_size: u8,
+        comp_dir: &'data [u8],
+        comp_name: &'data [u8]
     ) -> Result<LineNumberProgram<'data, E>, ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];
@@ -77,7 +83,7 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
 
         let standard_opcode_lengths = try!(read_block(&mut header, opcode_base as usize - 1));
 
-        let mut include_directories = Vec::new();
+        let mut include_directories = vec![comp_dir];
         loop {
             if header.len() < 1 {
                 return Err(ReadError::Invalid);
@@ -89,7 +95,12 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
             include_directories.push(try!(read_string(&mut header)));
         }
 
-        let mut files = Vec::new();
+        let mut files = vec![FileEntry {
+                                 path: comp_name,
+                                 directory: 0,
+                                 timestamp: 0,
+                                 length: 0,
+                             }];
         loop {
             if header.len() < 1 {
                 return Err(ReadError::Invalid);
@@ -126,36 +137,47 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
     }
 }
 
+// Since line entries can modify the file entry array, the ownership
+// gets a bit awkard unless the iterator takes ownership of the header.
+// When reading, if you want to read the line number information more
+// than once, then you should cache it. If you don't want to cache it,
+// then reparsing the header is a small cost.
+
 pub struct LineIterator<'data, E: 'data + Endian> {
-    program: &'data LineNumberProgram<'data, E>,
-    data: &'data [u8],
-    files: Vec<FileEntry<'data>>,
-    line: Line<'data>,
-    file: usize,
+    program: LineNumberProgram<'data, E>,
+    line: Line,
     copy: bool,
+    data: &'data [u8],
 }
 
 impl<'data, E: Endian> LineIterator<'data, E> {
-    pub fn new(program: &'data LineNumberProgram<'data, E>) -> Self {
+    pub fn new(program: LineNumberProgram<'data, E>) -> Self {
+        let default_statement = program.default_statement;
+        let data = program.data;
         LineIterator {
             program: program,
-            data: program.data.as_ref(),
-            files: Vec::new(),
-            line: Line::new(program.default_statement),
-            file: 1,
+            line: Line::new(default_statement),
             copy: false,
+            data: data,
         }
     }
 
+    pub fn directories(&self) -> &Vec<&'data [u8]> {
+        &self.program.include_directories
+    }
+
+    pub fn files(&self) -> &Vec<FileEntry> {
+        &self.program.files
+    }
+
     #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
-    pub fn next(&mut self) -> Result<Option<&Line>, ReadError> {
+    pub fn next(&mut self) -> Result<Option<(&LineIterator<E>, &Line)>, ReadError> {
         if self.data.len() == 0 {
             return Ok(None);
         }
 
         if self.line.sequence_end {
             self.line = Line::new(self.program.default_statement);
-            self.file = 1;
         } else {
             self.line.basic_block = false;
             self.line.prologue_end = false;
@@ -169,8 +191,7 @@ impl<'data, E: Endian> LineIterator<'data, E> {
             self.data = r;
             if self.copy {
                 self.copy = false;
-                self.set_file();
-                return Ok(Some(&self.line));
+                return Ok(Some((self, &self.line)));
             }
         }
     }
@@ -182,7 +203,7 @@ impl<'data, E: Endian> LineIterator<'data, E> {
             constant::DW_LNS_copy => self.copy = true,
             constant::DW_LNS_advance_pc => self.advance_pc(try!(leb128::read_u64(r))),
             constant::DW_LNS_advance_line => self.advance_line(try!(leb128::read_i64(r))),
-            constant::DW_LNS_set_file => self.file = try!(leb128::read_u64(r)) as usize,
+            constant::DW_LNS_set_file => self.line.file = try!(leb128::read_u64(r)),
             constant::DW_LNS_set_column => self.line.column = try!(leb128::read_u64(r)),
             constant::DW_LNS_negate_stmt => self.line.statement = !self.line.statement,
             constant::DW_LNS_set_basic_block => self.line.basic_block = true,
@@ -237,7 +258,7 @@ impl<'data, E: Endian> LineIterator<'data, E> {
                 self.line.operation = 0;
             }
             constant::DW_LNE_define_file => {
-                self.files.push(try!(FileEntry::read(&mut data)));
+                self.program.files.push(try!(FileEntry::read(&mut data)));
             }
             constant::DW_LNE_set_discriminator => {
                 self.line.discriminator = try!(leb128::read_u64(&mut data));
@@ -268,36 +289,13 @@ impl<'data, E: Endian> LineIterator<'data, E> {
     fn advance_line(&mut self, delta: i64) {
         self.line.line = self.line.line.wrapping_add(delta as u64);
     }
-
-    // TODO: return Result?
-    fn set_file(&mut self) {
-        let mut file = self.file;
-        if file < 1 {
-            self.line.file = FileEntry::default();
-            return;
-        }
-        file -= 1;
-
-        if file < self.program.files.len() {
-            self.line.file = self.program.files[file].clone();
-            return;
-        }
-        file -= self.program.files.len();
-
-        if file < self.files.len() {
-            self.line.file = self.files[file].clone();
-            return;
-        }
-
-        self.line.file = FileEntry::default();
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Line<'data> {
+pub struct Line {
     pub address: u64,
     pub operation: u64,
-    pub file: FileEntry<'data>,
+    pub file: u64,
     pub line: u64,
     pub column: u64,
     pub statement: bool,
@@ -309,12 +307,12 @@ pub struct Line<'data> {
     pub discriminator: u64,
 }
 
-impl<'data> Line<'data> {
+impl Line {
     fn new(statement: bool) -> Self {
         Line {
             address: 0,
             operation: 0,
-            file: FileEntry::default(),
+            file: 1,
             line: 1,
             column: 0,
             statement: statement,
@@ -331,7 +329,7 @@ impl<'data> Line<'data> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileEntry<'data> {
     pub path: &'data [u8],
-    pub directory: usize,
+    pub directory: u64,
     pub timestamp: u64,
     pub length: u64,
 }
@@ -351,7 +349,7 @@ impl<'data> FileEntry<'data> {
     pub fn read(r: &mut &'data [u8]) -> Result<FileEntry<'data>, ReadError> {
         let path = try!(read_string(r));
         // Note: not validating this here
-        let directory = try!(leb128::read_u64(r)) as usize;
+        let directory = try!(leb128::read_u64(r));
         let timestamp = try!(leb128::read_u64(r));
         let length = try!(leb128::read_u64(r));
         Ok(FileEntry {

@@ -41,11 +41,19 @@ impl<E: Endian> Sections<E> {
         unit.abbrev(&*self.debug_abbrev)
     }
 
-    pub fn line_program(
-        &self,
-        unit: &unit::CompilationUnit<E>,
+    pub fn line_program<'a>(
+        &'a self,
+        unit: &unit::CompilationUnit<'a, E>,
         abbrev: &abbrev::AbbrevHash
-    ) -> Result<Option<line::LineNumberProgram<E>>, ReadError> {
-        unit.line_program(&*self.debug_line, abbrev)
+    ) -> Result<Option<line::LineNumberProgram<'a, E>>, ReadError> {
+        unit.line_program(&*self.debug_line, &*self.debug_str, abbrev)
+    }
+
+    pub fn lines<'a>(
+        &'a self,
+        unit: &unit::CompilationUnit<'a, E>,
+        abbrev: &abbrev::AbbrevHash
+    ) -> Result<Option<line::LineIterator<'a, E>>, ReadError> {
+        unit.lines(&*self.debug_line, &*self.debug_str, abbrev)
     }
 }

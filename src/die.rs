@@ -252,6 +252,30 @@ pub enum AttributeData<'data> {
 }
 
 impl<'data> AttributeData<'data> {
+    pub fn as_string(&self, debug_str: &'data [u8]) -> Option<&'data [u8]> {
+        match *self {
+            AttributeData::String(val) => Some(val),
+            AttributeData::StringOffset(val) => {
+                let val = val as usize;
+                if val < debug_str.len() {
+                    let mut r = &debug_str[val..];
+                    read_string(&mut r).ok()
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    pub fn as_offset(&self) -> Option<usize> {
+        match *self {
+            AttributeData::Data4(val) => Some(val as usize),
+            AttributeData::SecOffset(val) => Some(val as usize),
+            _ => None,
+        }
+    }
+
     pub fn read<'unit, E: Endian>(
         r: &mut &'data [u8],
         unit: &UnitCommon<'unit, E>,

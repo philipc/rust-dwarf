@@ -328,8 +328,12 @@ impl fmt::Display for constant::DwAt {
     }
 }
 
-impl<'data> fmt::Display for Line<'data> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Line {
+    pub fn display<F: Formatter>(
+        &self,
+        f: &mut F,
+        files: &Vec<FileEntry>
+    ) -> Result<(), std::io::Error> {
         try!(write!(f, "{:08x} {}, {}", self.address, self.line, self.column));
         if self.statement {
             try!(write!(f, " NS"));
@@ -352,12 +356,15 @@ impl<'data> fmt::Display for Line<'data> {
         if self.discriminator != 0 {
             try!(write!(f, " DI={}", self.discriminator));
         }
-        if self.file.path.len() > 0 {
-            match std::str::from_utf8(self.file.path) {
-                Ok(val) => try!(write!(f, " uri: {}", val)),
-                Err(_) => try!(write!(f, " uri: len {}", self.file.path.len())),
+        match files.get(self.file as usize) {
+            Some(file) => {
+                match std::str::from_utf8(file.path) {
+                    Ok(val) => try!(write!(f, " uri: {}", val)),
+                    Err(_) => try!(write!(f, " uri: len {}", file.path.len())),
+                }
             }
+            _ => try!(write!(f, " uri: index {}", self.file)),
         }
-        Ok(())
+        writeln!(f, "")
     }
 }
