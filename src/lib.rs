@@ -45,7 +45,7 @@ impl<E: Endian> Sections<E> {
         &'a self,
         unit: &unit::CompilationUnit<'a, E>,
         abbrev: &abbrev::AbbrevHash
-    ) -> Result<Option<line::LineNumberProgram<'a, E>>, ReadError> {
+    ) -> Result<Option<line::LineProgram<'a, E>>, ReadError> {
         unit.line_program(&*self.debug_line, &*self.debug_str, abbrev)
     }
 

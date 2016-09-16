@@ -4,7 +4,7 @@ use abbrev::AbbrevHash;
 use constant;
 use die::DieIterator;
 use endian::Endian;
-use line::{LineIterator, LineNumberProgram};
+use line::{LineIterator, LineProgram};
 use read::*;
 use write::*;
 
@@ -82,7 +82,7 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         debug_line: &'data [u8],
         debug_str: &'data [u8],
         abbrev: &AbbrevHash
-    ) -> Result<Option<LineNumberProgram<'data, E>>, ReadError> {
+    ) -> Result<Option<LineProgram<'data, E>>, ReadError> {
         let mut entries = self.entries(abbrev);
         let entry = if let Some(entry) = try!(entries.next()) {
             entry
@@ -105,12 +105,12 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         }
         let mut r = &debug_line[offset..];
 
-        LineNumberProgram::read(&mut r,
-                                offset,
-                                self.common.endian,
-                                self.common.address_size,
-                                comp_dir,
-                                comp_name)
+        LineProgram::read(&mut r,
+                          offset,
+                          self.common.endian,
+                          self.common.address_size,
+                          comp_dir,
+                          comp_name)
             .map(Some)
     }
 
@@ -121,7 +121,7 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
         abbrev: &AbbrevHash
     ) -> Result<Option<LineIterator<'data, E>>, ReadError> {
         let program = try!(self.line_program(debug_line, debug_str, abbrev));
-        Ok(program.map(LineNumberProgram::into_lines))
+        Ok(program.map(LineProgram::into_lines))
     }
 
     pub fn entries<'a>(&'a self, abbrev: &'a AbbrevHash) -> DieIterator<'a, 'data, E> {

@@ -4,7 +4,7 @@ use leb128;
 use read::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LineNumberProgram<'data, E: Endian> {
+pub struct LineProgram<'data, E: Endian> {
     pub offset: usize,
     pub endian: E,
     pub version: u16,
@@ -22,7 +22,7 @@ pub struct LineNumberProgram<'data, E: Endian> {
     pub data: &'data [u8],
 }
 
-impl<'data, E: Endian> LineNumberProgram<'data, E> {
+impl<'data, E: Endian> LineProgram<'data, E> {
     pub fn lines(&self) -> LineIterator<'data, E> {
         LineIterator::new(self.clone())
     }
@@ -38,7 +38,7 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
         address_size: u8,
         comp_dir: &'data [u8],
         comp_name: &'data [u8]
-    ) -> Result<LineNumberProgram<'data, E>, ReadError> {
+    ) -> Result<LineProgram<'data, E>, ReadError> {
         let (offset_size, len) = try!(read_initial_length(r, endian));
         let mut data = &r[..len];
 
@@ -117,7 +117,7 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
         }
 
         *r = &r[len..];
-        Ok(LineNumberProgram {
+        Ok(LineProgram {
             offset: offset,
             endian: endian,
             version: version,
@@ -144,14 +144,14 @@ impl<'data, E: Endian> LineNumberProgram<'data, E> {
 // then reparsing the header is a small cost.
 
 pub struct LineIterator<'data, E: 'data + Endian> {
-    program: LineNumberProgram<'data, E>,
+    program: LineProgram<'data, E>,
     line: Line,
     copy: bool,
     data: &'data [u8],
 }
 
 impl<'data, E: Endian> LineIterator<'data, E> {
-    pub fn new(program: LineNumberProgram<'data, E>) -> Self {
+    pub fn new(program: LineProgram<'data, E>) -> Self {
         let default_statement = program.default_statement;
         let data = program.data;
         LineIterator {
