@@ -95,8 +95,10 @@ impl<'data, E: Endian> CompilationUnit<'data, E> {
             None => return Ok(None),
         };
         let offset = try!(offset.as_offset().ok_or(ReadError::Invalid)) as usize;
-        let comp_dir = try!(entry.attr(constant::DW_AT_comp_dir).ok_or(ReadError::Invalid));
-        let comp_dir = try!(comp_dir.as_string(debug_str).ok_or(ReadError::Invalid));
+        let comp_dir = match entry.attr(constant::DW_AT_comp_dir) {
+            Some(attr) => try!(attr.as_string(debug_str).ok_or(ReadError::Invalid)),
+            None => &[],
+        };
         let comp_name = try!(entry.attr(constant::DW_AT_name).ok_or(ReadError::Invalid));
         let comp_name = try!(comp_name.as_string(debug_str).ok_or(ReadError::Invalid));
 
