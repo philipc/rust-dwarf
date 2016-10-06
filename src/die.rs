@@ -109,6 +109,124 @@ impl<'a, 'data, E: Endian> DieIterator<'a, 'data, E> {
             }
         }
     }
+
+    pub fn tree(self) -> DieTree<'a, 'data, E> {
+        DieTree::new(self)
+    }
+}
+
+#[derive(Debug)]
+pub struct DieTree<'a, 'data, E>
+    where 'data: 'a,
+          E: Endian + 'a
+{
+    iter: DieIterator<'a, 'data, E>,
+    // The depth of the entry that DieIterator::next_sibling() will return.
+    depth: isize,
+}
+
+impl<'a, 'data, E> DieTree<'a, 'data, E>
+    where E: Endian
+{
+    fn new(iter: DieIterator<'a, 'data, E>) -> DieTree<'a, 'data, E> {
+        DieTree {
+            iter: iter,
+            depth: 0,
+        }
+    }
+
+    pub fn iter<'me>(&'me mut self) -> DieTreeIterator<'me, 'a, 'data, E> {
+        let depth = self.depth;
+        DieTreeIterator::new(self, depth)
+    }
+
+    // Move the iterator to the next entry at the specified depth.
+    //
+    // Assumes depth <= self.depth + 1.
+    //
+    // Returns true if successful.
+    fn next<'me>(&'me mut self, depth: isize) -> Result<bool, ReadError> {
+        if self.depth < depth {
+            // The iterator is at the parent.
+            debug_assert_eq!(self.depth + 1, depth);
+            if !self.iter.entry.children {
+                // No children, sorry.
+                return Ok(false);
+            }
+            // The next entry is the child.
+            if try!(self.iter.next()).is_none() {
+                return Ok(false);
+            }
+            if self.iter.entry.is_null() {
+                // No children, don't adjust depth.
+                return Ok(false);
+            } else {
+                // Got a child, next_sibling is now at the child depth.
+                self.depth += 1;
+                return Ok(true);
+            }
+        }
+        loop {
+            if try!(self.iter.next_sibling()).is_none() {
+                return Ok(false);
+            }
+            if self.depth == depth {
+                if self.iter.entry.is_null() {
+                    // No more entries at the target depth.
+                    self.depth -= 1;
+                    return Ok(false);
+                } else {
+                    // Got a child at the target depth.
+                    return Ok(true);
+                }
+            }
+            if self.iter.entry.is_null() {
+                self.depth -= 1;
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DieTreeIterator<'a, 'b, 'data, E>
+    where 'b: 'a,
+          'data: 'b,
+          E: Endian + 'b
+{
+    tree: &'a mut DieTree<'b, 'data, E>,
+    depth: isize,
+    done: bool,
+}
+
+impl<'a, 'b, 'data, E> DieTreeIterator<'a, 'b, 'data, E>
+    where E: Endian
+{
+    #[inline]
+    fn new(tree: &'a mut DieTree<'b, 'data, E>, depth: isize) -> DieTreeIterator<'a, 'b, 'data, E> {
+        DieTreeIterator {
+            tree: tree,
+            depth: depth,
+            done: false,
+        }
+    }
+
+    #[inline]
+    pub fn entry(&self) -> &Die<'data> {
+        &self.tree.iter.entry
+    }
+
+    #[inline]
+    pub fn next<'me>(&'me mut self)
+        -> Result<Option<DieTreeIterator<'me, 'b, 'data, E>>, ReadError> {
+        if self.done {
+            Ok(None)
+        } else if try!(self.tree.next(self.depth)) {
+            Ok(Some(DieTreeIterator::new(self.tree, self.depth + 1)))
+        } else {
+            self.done = true;
+            Ok(None)
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -558,6 +676,53 @@ mod test {
         assert!(entries.next_sibling().unwrap().is_none());
 
         // TODO test DW_AT_sibling
+
+        let mut tree = unit.entries(0, &abbrev_hash).tree();
+        let mut tree = tree.iter();
+        {
+            let mut tree = tree.next().unwrap().unwrap();
+            assert_eq!(*tree.entry(), write_val[0]);
+            {
+                let mut tree = tree.next().unwrap().unwrap();
+                assert_eq!(*tree.entry(), write_val[1]);
+                assert!(tree.next().unwrap().is_none());
+            }
+            {
+                let mut tree = tree.next().unwrap().unwrap();
+                assert_eq!(*tree.entry(), write_val[2]);
+                assert!(tree.next().unwrap().is_none());
+            }
+            {
+                let mut tree = tree.next().unwrap().unwrap();
+                assert_eq!(*tree.entry(), write_val[4]);
+                {
+                    let mut tree = tree.next().unwrap().unwrap();
+                    assert_eq!(*tree.entry(), write_val[5]);
+                    assert!(tree.next().unwrap().is_none());
+                }
+                assert!(tree.next().unwrap().is_none());
+            }
+            {
+                let mut tree = tree.next().unwrap().unwrap();
+                assert_eq!(*tree.entry(), write_val[7]);
+                {
+                    let tree = tree.next().unwrap().unwrap();
+                    assert_eq!(*tree.entry(), write_val[8]);
+                    // Stop iterating here.
+                }
+            }
+            {
+                let tree = tree.next().unwrap().unwrap();
+                assert_eq!(*tree.entry(), write_val[13]);
+            }
+            assert!(tree.next().unwrap().is_none());
+        }
+        {
+            let mut tree = tree.next().unwrap().unwrap();
+            assert_eq!(*tree.entry(), write_val[15]);
+            assert!(tree.next().unwrap().is_none());
+        }
+        assert!(tree.next().unwrap().is_none());
     }
 
     #[test]

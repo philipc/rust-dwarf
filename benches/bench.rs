@@ -39,6 +39,34 @@ fn read_info(b: &mut test::Bencher) {
 }
 
 #[bench]
+fn read_info_tree(b: &mut test::Bencher) {
+    let path = std::env::args_os().next().unwrap(); // Note: not constant
+    let sections = dwarf::elf::load(path).unwrap();
+    b.iter(|| {
+        let mut units = sections.compilation_units();
+        while let Some(unit) = units.next().unwrap() {
+            let abbrev = sections.abbrev(&unit.common).unwrap();
+            let mut entries = unit.entries(&abbrev).tree();
+            read_info_tree_inner(entries.iter());
+        }
+    });
+}
+
+fn read_info_tree_inner(mut tree: dwarf::die::DieTreeIterator<dwarf::AnyEndian>) {
+    while let Some(child) = tree.next().unwrap() {
+        {
+            let entry = child.entry();
+            test::black_box(entry.tag);
+            for attribute in &entry.attributes {
+                test::black_box(attribute.at);
+                test::black_box(&attribute.data);
+            }
+        }
+        read_info_tree_inner(child);
+    }
+}
+
+#[bench]
 fn read_line(b: &mut test::Bencher) {
     let path = std::env::args_os().next().unwrap(); // Note: not constant
     let sections = dwarf::elf::load(path).unwrap();
