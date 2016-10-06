@@ -37,10 +37,15 @@ impl<'a, 'data, E: Endian> DieIterator<'a, 'data, E> {
         }
     }
 
+    #[inline]
     pub fn offset(&self) -> usize {
         self.offset
     }
 
+    // Get the next entry.
+    //
+    // This may be a normal entry, or a null entry.
+    // Returns `None` when the end of input is reached.
     #[cfg_attr(feature = "clippy", allow(should_implement_trait))]
     pub fn next(&mut self) -> Result<Option<&Die<'data>>, ReadError> {
         if self.r.len() == 0 {
@@ -54,42 +59,55 @@ impl<'a, 'data, E: Endian> DieIterator<'a, 'data, E> {
         Ok(Some(&self.entry))
     }
 
+    // Get the next sibling entry.
+    //
+    // If the current entry has no children, or is a null, then this
+    // simply returns the next entry.
+    //
+    // If the current entry has children, then its child entries (and
+    // the associated null) are skipped over. The DW_AT_sibling attribute
+    // is used to accelerate this if possible.
+    //
+    // If the returned entry is a null, then there are no more siblings.
+    // Note that this means a subsequent call to this method will return
+    // an entry at the next higher depth in the tree.
+    //
+    // Returns `None` when the end of input is reached.
     pub fn next_sibling(&mut self) -> Result<Option<&Die<'data>>, ReadError> {
-        let mut depth = if self.entry.children { 1 } else { 0 };
-        while depth > 0 {
-            let mut sibling_offset = 0;
-            for attribute in &self.entry.attributes {
-                if attribute.at == constant::DW_AT_sibling {
-                    if let AttributeData::Ref(offset) = attribute.data {
-                        sibling_offset = self.unit.offset + offset as usize;
-                    }
-                    break;
-                }
-            }
-            if sibling_offset > self.offset {
-                let relative_offset = sibling_offset - self.offset;
-                if relative_offset <= self.r.len() {
-                    self.entry.set_null(0);
-                    self.offset = sibling_offset;
-                    self.r = &self.r[relative_offset..];
-                    depth -= 1;
-                    if depth == 0 {
+        let mut depth = 0;
+        loop {
+            if self.entry.children {
+                depth += 1;
+                let mut sibling_offset = 0;
+                for attribute in &self.entry.attributes {
+                    if attribute.at == constant::DW_AT_sibling {
+                        if let AttributeData::Ref(offset) = attribute.data {
+                            sibling_offset = self.unit.offset + offset as usize;
+                        }
                         break;
                     }
                 }
-            }
-            match try!(self.next()) {
-                Some(die) => {
-                    if die.is_null() {
+                // This is outside the for loop due to borrow check
+                if sibling_offset > self.offset {
+                    let relative_offset = sibling_offset - self.offset;
+                    if relative_offset <= self.r.len() {
+                        self.entry.set_null(0);
+                        self.offset = sibling_offset;
+                        self.r = &self.r[relative_offset..];
                         depth -= 1;
-                    } else if die.children {
-                        depth += 1;
                     }
                 }
-                None => return Ok(None),
+            }
+            if try!(self.next()).is_none() {
+                return Ok(None);
+            }
+            if depth <= 0 {
+                return Ok(Some(&self.entry));
+            }
+            if self.entry.is_null() {
+                depth -= 1;
             }
         }
-        self.next()
     }
 }
 
